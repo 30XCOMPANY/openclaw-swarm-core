@@ -1,32 +1,33 @@
-# OpenClaw Swarm Core (Private Distribution)
+# OPENCLAW SWARM CORE // PRIVATE EDITION
 
-Global Delivery OS for OpenClaw agent swarm.
+> One human  
+> Many agents  
+> Zero script copy-paste hell
 
-This repo packages a reusable, project-agnostic swarm control plane with:
+This repo is a reusable Delivery OS for OpenClaw.
+
+It gives every project the same hardened swarm core:
 - deterministic task state machine
 - multi-driver execution (`codex`, `claudecode`, `opencode`, `gemini-cli`)
 - SQLite truth source + JSON compatibility projection
 - OpenClaw-native notifications (`openclaw message send`)
-- per-project thin wrappers via `swarm seed`
+- project seeding via `swarm seed`
 
-## Contents
+## Architecture At 10,000 RPM
 
-- `swarm-core/` global control plane runtime
-- `reference/` architecture / constitution / usage docs
-- `install.sh` one-command installer for agents
+```mermaid
+flowchart LR
+    H["Human Intent"] --> O["OpenClaw Orchestrator"]
+    O --> S["swarm-core CLI"]
+    S --> D["Driver: codex / claudecode / opencode / gemini-cli"]
+    D --> W["worktree + branch + tmux"]
+    W --> P["PR + CI + Reviews"]
+    P --> G["DoD Gate"]
+    G --> N["OpenClaw Notification"]
+    N --> H
+```
 
-## Requirements
-
-- macOS/Linux shell
-- `python3` (3.11+ recommended)
-- `git`, `tmux`, `gh`
-- at least one coding CLI installed:
-  - `codex`
-  - `claude`
-  - `opencode`
-  - `gemini`
-
-## Agent Self-Install
+## 90-Second Install
 
 ```bash
 git clone https://github.com/20XCOMPANY/openclaw-swarm-core.git
@@ -34,39 +35,54 @@ cd openclaw-swarm-core
 ./install.sh --yes --link-bin
 ```
 
-What it does:
-- installs runtime to `~/.openclaw/swarm-core`
-- keeps backup of existing install (`.bak.<timestamp>`)
-- optionally links `~/.local/bin/swarm` -> `~/.openclaw/swarm-core/swarm`
+Installer behavior:
+- deploys runtime to `~/.openclaw/swarm-core`
+- creates backup if existing install is present (`.bak.<timestamp>`)
+- links `~/.local/bin/swarm` when `--link-bin` is enabled
 
-## Verify
+## Verify It Is Alive
 
 ```bash
-~/.openclaw/swarm-core/swarm --help
-# or if --link-bin used:
 swarm --help
+# or
+~/.openclaw/swarm-core/swarm --help
 ```
 
-## Bootstrap a Project
+## Seed Any Project
 
 ```bash
-swarm seed --repo /abs/path/to/your/repo
+swarm seed --repo /abs/path/to/repo
 ```
 
-Then use generated wrappers in project `.openclaw/`:
+Generated wrappers in project `.openclaw/`:
+- `spawn-agent.sh`
+- `redirect-agent.sh`
+- `check-agents.sh`
+- `status.sh`
+- `cleanup.sh`
+
+## Operator Cheatcodes
 
 ```bash
-./.openclaw/spawn-agent.sh --id "task-$(date +%s)" --agent codex --prompt "your task"
+# Spawn
+./.openclaw/spawn-agent.sh --id "task-$(date +%s)" --agent codex --prompt "ship feature X"
+
+# Correct direction mid-flight
+./.openclaw/redirect-agent.sh <task-id> "focus API first then UI"
+
+# Deterministic monitor tick
 ./.openclaw/check-agents.sh
-./.openclaw/status.sh
+
+# Status / cleanup
+./.openclaw/status.sh --json
 ./.openclaw/cleanup.sh
 ```
 
-## Driver Notes
+## Driver Rules
 
-- Default project driver is `codex`
-- `claude` alias maps to `claudecode`
-- `gemini-cli` is executable and can be toggled via project config:
+- default project driver: `codex`
+- `claude` alias -> `claudecode`
+- `gemini-cli` is executable and can be toggled per project
 
 ```toml
 [drivers.gemini-cli]
@@ -75,13 +91,13 @@ reasoning = "high"
 enabled = true
 ```
 
-## Notification Notes
+## Notification Rules
 
-Notifications are sent by OpenClaw itself (not raw webhook scripts):
-- command path: `openclaw message send ...`
+Notifications are sent by OpenClaw itself, not raw webhook scripts.
+- sender path: `openclaw message send`
 - configured in each project `.openclaw/project.toml` under `[notifications]`
 
-## Release Update
+## Upgrade
 
 ```bash
 cd openclaw-swarm-core
@@ -89,7 +105,13 @@ git pull
 ./install.sh --yes --link-bin
 ```
 
-## References
+## Repo Layout
+
+- `swarm-core/` runtime core
+- `reference/` usage + architecture + constitution
+- `install.sh` self-install for agents
+
+## Read Before Extending
 
 - `reference/agent-swarm-usage.md`
 - `reference/agent-swarm-architecture.md`
