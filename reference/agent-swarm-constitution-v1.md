@@ -1,7 +1,7 @@
-# Agent Swarm Constitution v1
+# 30X Swarm Constitution v1
 
 Status: Draft v1  
-Scope: OpenClaw orchestration for local coding-agent delivery  
+Scope: 30X Swarm orchestration for local coding-agent delivery  
 Aligned Source: Elvis OpenClaw + Agent Swarm article (2026-02-23)
 
 ## 1) System Intent

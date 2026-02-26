@@ -1,4 +1,4 @@
-# Agent Swarm Architecture - Elvis's OpenClaw Setup
+# 30X Swarm Architecture - Elvis's OpenClaw Setup
 
 Source: https://x.com/elvissun/status/2025920521871716562
 Date: 2026-02-23

@@ -1,6 +1,6 @@
-# openclaw-swarm-core - Private Distribution Pack
+# 30X Swarm - Private Distribution Pack
 
-Reusable OpenClaw swarm control plane package for organization-wide seeding.
+Reusable 30X Swarm control plane package for organization-wide seeding.
 
 <directory>
 swarm-core/ - Runtime core (CLI/state machine/drivers/templates)

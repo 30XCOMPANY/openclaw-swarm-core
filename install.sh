@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # [INPUT]: This repository checkout and optional flags (--target/--yes/--link-bin).
 # [OUTPUT]: Installed swarm runtime under ~/.openclaw/swarm-core plus optional ~/.local/bin/swarm symlink.
-# [POS]: Distribution installer for OpenClaw swarm-core private package.
+# [POS]: Distribution installer for 30X Swarm private package.
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
 set -euo pipefail

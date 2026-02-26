@@ -13,7 +13,7 @@
 - drivers/gemini_cli.py: Gemini CLI 执行驱动实现。
 
 架构边界
-- `swarm-core` 是全局控制平面，项目目录只保留薄配置和兼容投影。
+- `swarm-core` 是 30X Swarm 的全局控制平面，项目目录只保留薄配置和兼容投影。
 - 任务状态唯一真相源是每项目 `.openclaw/swarm.db` 的 SQLite。
 - `active-tasks.json` 仅作为兼容投影，不允许被业务逻辑直接当主存。
 - `swarm seed` 负责播种 `.openclaw` 兼容脚本，并在缺失时补种项目根 `AGENTS.md`。

@@ -50,7 +50,7 @@ It gives every repo the same hardened runtime:
 ## 90-Second Install
 
 ```bash
-git clone https://github.com/20XCOMPANY/openclaw-swarm-core.git
+git clone https://github.com/30XCOMPANY/openclaw-swarm-core.git
 cd openclaw-swarm-core
 ./install.sh --yes --link-bin
 ```

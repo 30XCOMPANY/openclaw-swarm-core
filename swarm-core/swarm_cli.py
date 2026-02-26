@@ -252,9 +252,9 @@ def seed_repo_agents_doc(repo_path: str) -> Optional[str]:
 
     content = "\n".join(
         [
-            f"# {repo.name} - OpenClaw Seeded Project",
+            f"# {repo.name} - 30X Swarm Seeded Project",
             "",
-            "This repository is managed by OpenClaw swarm seeding for reusable multi-agent delivery workflows.",
+            "This repository is managed by 30X Swarm seeding (OpenClaw orchestration) for reusable multi-agent delivery workflows.",
             "",
             *dir_lines,
             "",
@@ -292,7 +292,7 @@ def ensure_gitignore_entries(repo_path: str) -> Optional[str]:
     lines = existing[:]
     if lines and lines[-1] != "":
         lines.append("")
-    lines.append("# OpenClaw Swarm runtime")
+    lines.append("# 30X Swarm runtime")
     lines.extend(missing)
     lines.append("")
 
@@ -1918,7 +1918,7 @@ def cmd_status(args: argparse.Namespace) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="swarm", description="OpenClaw Swarm Core CLI")
+    parser = argparse.ArgumentParser(prog="swarm", description="30X Swarm Core CLI")
     sub = parser.add_subparsers(dest="command", required=True)
 
     seed = sub.add_parser("seed", help="Seed project swarm config and storage")
