@@ -396,7 +396,7 @@ def default_project_toml(repo_path: str) -> str:
         events = ["ready_to_merge", "merged", "abandoned"]
 
         [drivers.codex]
-        model = "default/claude-opus-4-6"
+        model = "anthropic/claude-opus-4-6"
         reasoning = "high"
 
         [drivers.claudecode]
@@ -404,7 +404,7 @@ def default_project_toml(repo_path: str) -> str:
         reasoning = "high"
 
         [drivers.opencode]
-        model = "default/claude-opus-4-6"
+        model = "anthropic/claude-opus-4-6"
         reasoning = "high"
 
         [drivers.gemini-cli]
@@ -448,9 +448,9 @@ def load_project_config(repo_path: str) -> ProjectConfig:
     notify_events = [str(item).strip() for item in notify_events_raw if str(item).strip()]
 
     models: Dict[str, str] = {
-        "codex": "default/claude-opus-4-6",
+        "codex": "anthropic/claude-opus-4-6",
         "claudecode": "claude-sonnet-4-6",
-        "opencode": "default/claude-opus-4-6",
+        "opencode": "anthropic/claude-opus-4-6",
         "gemini-cli": "gemini-2.5-pro",
     }
     reasoning: Dict[str, str] = {
@@ -1261,7 +1261,7 @@ def cmd_task_spawn(args: argparse.Namespace) -> None:
     log_file = str(openclaw_dir(repo) / "logs" / f"{task_id}.log")
 
     prompt = build_prompt(raw_prompt, task_id=task_id, branch=branch, base_branch=config.base_branch)
-    model = config.models.get(driver_name, config.models.get("codex", "default/claude-opus-4-6"))
+    model = config.models.get(driver_name, config.models.get("codex", "anthropic/claude-opus-4-6"))
     effort = config.reasoning.get(driver_name, "high")
 
     try:
