@@ -396,7 +396,7 @@ def default_project_toml(repo_path: str) -> str:
         events = ["ready_to_merge", "merged", "abandoned"]
 
         [drivers.codex]
-        model = "anthropic/claude-opus-4-6"
+        model = "gpt-5.3-codex"
         reasoning = "high"
 
         [drivers.claudecode]
@@ -404,7 +404,7 @@ def default_project_toml(repo_path: str) -> str:
         reasoning = "high"
 
         [drivers.opencode]
-        model = "anthropic/claude-opus-4-6"
+        model = "default/gpt-5.3-codex"
         reasoning = "high"
 
         [drivers.gemini-cli]
@@ -413,6 +413,29 @@ def default_project_toml(repo_path: str) -> str:
         enabled = true
         """
     ).strip() + "\n"
+
+
+def normalize_model_for_driver(driver_name: str, model: str) -> str:
+    value = (model or "").strip()
+    if not value:
+        return value
+
+    name = driver_name.strip().lower()
+    if name == "codex":
+        # Codex CLI expects plain model IDs, not provider/model.
+        if "/" in value:
+            return value.split("/", 1)[1]
+        return value
+
+    if name == "opencode":
+        # OpenCode expects provider/model format.
+        if "/" not in value:
+            return f"default/{value}"
+        if value == "openai/gpt-5.3-codex":
+            return "default/gpt-5.3-codex"
+        return value
+
+    return value
 
 
 def load_project_config(repo_path: str) -> ProjectConfig:
@@ -448,9 +471,9 @@ def load_project_config(repo_path: str) -> ProjectConfig:
     notify_events = [str(item).strip() for item in notify_events_raw if str(item).strip()]
 
     models: Dict[str, str] = {
-        "codex": "anthropic/claude-opus-4-6",
+        "codex": "gpt-5.3-codex",
         "claudecode": "claude-sonnet-4-6",
-        "opencode": "anthropic/claude-opus-4-6",
+        "opencode": "default/gpt-5.3-codex",
         "gemini-cli": "gemini-2.5-pro",
     }
     reasoning: Dict[str, str] = {
@@ -474,7 +497,7 @@ def load_project_config(repo_path: str) -> ProjectConfig:
         model = value.get("model")
         effort = value.get("reasoning")
         if isinstance(model, str) and model.strip():
-            models[name] = model.strip()
+            models[name] = normalize_model_for_driver(name, model.strip())
         if isinstance(effort, str) and effort.strip():
             reasoning[name] = effort.strip()
         enabled = value.get("enabled")
@@ -1261,7 +1284,8 @@ def cmd_task_spawn(args: argparse.Namespace) -> None:
     log_file = str(openclaw_dir(repo) / "logs" / f"{task_id}.log")
 
     prompt = build_prompt(raw_prompt, task_id=task_id, branch=branch, base_branch=config.base_branch)
-    model = config.models.get(driver_name, config.models.get("codex", "anthropic/claude-opus-4-6"))
+    model = config.models.get(driver_name, config.models.get("codex", "gpt-5.3-codex"))
+    model = normalize_model_for_driver(driver_name, model)
     effort = config.reasoning.get(driver_name, "high")
 
     try:
@@ -1566,7 +1590,7 @@ def spawn_retry(conn: sqlite3.Connection, config: ProjectConfig, row: sqlite3.Ro
         """
     ).strip()
 
-    model = str(row["model"])
+    model = normalize_model_for_driver(driver_name, str(row["model"]))
     effort = config.reasoning.get(driver_name, "high")
     try:
         launch = driver.launch(
@@ -1600,7 +1624,7 @@ def spawn_retry(conn: sqlite3.Connection, config: ProjectConfig, row: sqlite3.Ro
     conn.execute(
         """
         UPDATE tasks
-        SET status = ?, attempt_count = ?, prompt_text = ?, started_at = ?, completed_at = NULL,
+        SET status = ?, attempt_count = ?, model = ?, prompt_text = ?, started_at = ?, completed_at = NULL,
             branch = ?, worktree_path = ?, tmux_session = ?, log_path = ?,
             last_error_code = NULL, last_error_reason = NULL, last_error_evidence = NULL,
             updated_at = ?
@@ -1609,6 +1633,7 @@ def spawn_retry(conn: sqlite3.Connection, config: ProjectConfig, row: sqlite3.Ro
         (
             STATUS_RUNNING,
             next_attempt,
+            launch.model,
             retry_prompt,
             now_iso(),
             branch,
@@ -1619,7 +1644,7 @@ def spawn_retry(conn: sqlite3.Connection, config: ProjectConfig, row: sqlite3.Ro
             task_id,
         ),
     )
-    insert_attempt(conn, task_id, next_attempt, driver_name, model, session, retry_prompt)
+    insert_attempt(conn, task_id, next_attempt, driver_name, launch.model, session, retry_prompt)
     event(conn, task_id, "retry_spawned", str(row["status"]), STATUS_RUNNING, "Automatic retry launched")
 
 
