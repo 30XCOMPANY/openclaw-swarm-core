@@ -106,6 +106,8 @@ class ProjectConfig:
     notify_allow_failure_events: bool
     notify_silent: bool
     notify_dry_run: bool
+    progress_enabled: bool
+    progress_interval_minutes: int
 
 
 @dataclass(slots=True)
@@ -463,6 +465,22 @@ def resolve_spawn_notify_route(args: argparse.Namespace, config: ProjectConfig) 
     return derived
 
 
+def resolve_progress_settings(args: argparse.Namespace, config: ProjectConfig) -> Tuple[bool, int]:
+    explicit_interval = getattr(args, "progress_every_minutes", None)
+    no_progress = bool(getattr(args, "no_progress_updates", False))
+
+    if no_progress:
+        return False, 0
+
+    if explicit_interval is not None:
+        interval = max(0, int(explicit_interval))
+        return (interval > 0), interval
+
+    interval = max(0, int(config.progress_interval_minutes))
+    enabled = bool(config.progress_enabled and interval > 0)
+    return enabled, interval
+
+
 def default_project_toml(repo_path: str) -> str:
     repo = Path(repo_path)
     repo_name = repo.name
@@ -492,6 +510,10 @@ def default_project_toml(repo_path: str) -> str:
         dry_run = false
         events = ["ready_to_merge", "merged"]
         allow_failure_events = false
+
+        [progress]
+        enabled = true
+        interval_minutes = 5
 
         [drivers.codex]
         # Optional. Leave unset to use Codex CLI default model.
@@ -570,6 +592,12 @@ def load_project_config(repo_path: str) -> ProjectConfig:
     ]
     notify_events = [str(item).strip() for item in notify_events_raw if str(item).strip()]
 
+    progress = parsed.get("progress") if isinstance(parsed.get("progress"), dict) else {}
+    progress_enabled = bool(progress.get("enabled") if progress.get("enabled") is not None else True)
+    progress_interval_minutes = int(progress.get("interval_minutes") or 5)
+    if progress_interval_minutes < 0:
+        progress_interval_minutes = 0
+
     models: Dict[str, str] = {
         "codex": "",
         "claudecode": "",
@@ -624,6 +652,8 @@ def load_project_config(repo_path: str) -> ProjectConfig:
         notify_allow_failure_events=notify_allow_failure_events,
         notify_silent=notify_silent,
         notify_dry_run=notify_dry_run,
+        progress_enabled=progress_enabled,
+        progress_interval_minutes=progress_interval_minutes,
     )
 
 
@@ -670,6 +700,9 @@ def init_schema(conn: sqlite3.Connection) -> None:
           notify_target TEXT,
           notify_account TEXT,
           source_session_key TEXT,
+          progress_notify_enabled INTEGER NOT NULL DEFAULT 1,
+          progress_notify_interval_minutes INTEGER NOT NULL DEFAULT 5,
+          last_progress_notified_at TEXT,
           ci_status TEXT,
           pr_number INTEGER,
           pr_url TEXT,
@@ -747,12 +780,25 @@ def init_schema(conn: sqlite3.Connection) -> None:
           FOREIGN KEY(task_id) REFERENCES tasks(id)
         );
 
+        CREATE TABLE IF NOT EXISTS task_progress_notifications (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          task_id TEXT NOT NULL,
+          status TEXT NOT NULL,
+          channel TEXT NOT NULL,
+          target TEXT NOT NULL,
+          message TEXT NOT NULL,
+          result TEXT NOT NULL,
+          sent_at TEXT NOT NULL,
+          FOREIGN KEY(task_id) REFERENCES tasks(id)
+        );
+
         CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
         CREATE INDEX IF NOT EXISTS idx_tasks_updated_at ON tasks(updated_at);
         CREATE INDEX IF NOT EXISTS idx_tasks_branch ON tasks(branch);
         CREATE INDEX IF NOT EXISTS idx_attempts_task_id ON task_attempts(task_id);
         CREATE INDEX IF NOT EXISTS idx_events_task_id ON task_events(task_id);
         CREATE INDEX IF NOT EXISTS idx_notifications_task_id ON task_notifications(task_id);
+        CREATE INDEX IF NOT EXISTS idx_progress_notifications_task_id ON task_progress_notifications(task_id);
         """
     )
     ensure_table_columns(
@@ -763,6 +809,9 @@ def init_schema(conn: sqlite3.Connection) -> None:
             "notify_target": "TEXT",
             "notify_account": "TEXT",
             "source_session_key": "TEXT",
+            "progress_notify_enabled": "INTEGER NOT NULL DEFAULT 1",
+            "progress_notify_interval_minutes": "INTEGER NOT NULL DEFAULT 5",
+            "last_progress_notified_at": "TEXT",
         },
     )
 
@@ -1061,6 +1110,219 @@ def send_status_notification(
     return True
 
 
+PROGRESS_STATUS_SET = {
+    STATUS_RUNNING,
+    STATUS_PR_CREATED,
+    STATUS_CI_FAILED,
+    STATUS_CI_PASSED,
+    STATUS_REVIEW_CHANGES,
+}
+
+
+def parse_iso_utc(value: str) -> Optional[datetime]:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except Exception:
+        return None
+
+
+def should_send_progress_notification(config: Optional[ProjectConfig], row: sqlite3.Row) -> bool:
+    if config is None:
+        return False
+    if not config.notify_enabled:
+        return False
+    if config.notify_provider != "openclaw":
+        return False
+    if is_temp_repo_path(str(row["repo_path"] or config.repo_path)):
+        return False
+
+    status = str(row["status"] or "")
+    if status not in PROGRESS_STATUS_SET:
+        return False
+
+    route = resolve_task_notify_route(config, row)
+    if not route.channel or not route.target:
+        return False
+
+    progress_enabled = bool(row["progress_notify_enabled"])
+    if not progress_enabled:
+        return False
+    interval = int(row["progress_notify_interval_minutes"] or 0)
+    if interval <= 0:
+        return False
+
+    now = datetime.now(timezone.utc)
+    anchor = (
+        parse_iso_utc(str(row["last_progress_notified_at"] or ""))
+        or parse_iso_utc(str(row["started_at"] or ""))
+        or parse_iso_utc(str(row["created_at"] or ""))
+    )
+    if anchor is None:
+        return True
+
+    elapsed = (now - anchor).total_seconds()
+    return elapsed >= interval * 60
+
+
+def progress_doing(status: str) -> str:
+    if status == STATUS_RUNNING:
+        return "Agent is implementing code in worktree and tmux session."
+    if status == STATUS_PR_CREATED:
+        return "PR is open; waiting for CI and review gates."
+    if status == STATUS_CI_FAILED:
+        return "CI is failing; waiting retry with failure evidence."
+    if status == STATUS_CI_PASSED:
+        return "CI passed; waiting review and mergeability checks."
+    if status == STATUS_REVIEW_CHANGES:
+        return "Review requested changes; retry loop preparing fix."
+    return "Task is progressing through delivery pipeline."
+
+
+def progress_next(status: str) -> str:
+    if status == STATUS_RUNNING:
+        return "Create PR and enter gate checks."
+    if status in {STATUS_PR_CREATED, STATUS_CI_PASSED}:
+        return "Wait for all DoD gates then mark ready_to_merge."
+    if status in {STATUS_CI_FAILED, STATUS_REVIEW_CHANGES}:
+        return "Auto-retry with contextual evidence injection."
+    return "Continue monitor loop."
+
+
+def build_progress_message(row: sqlite3.Row) -> str:
+    repo_name = Path(str(row["repo_path"] or "")).name or str(row["repo_path"] or "-")
+    status = str(row["status"] or "")
+    lines = [
+        f"System: [swarm-progress] {repo_name}",
+        f"task={row['id']} status={status}",
+        f"doing={progress_doing(status)}",
+        f"next={progress_next(status)}",
+        f"attempt={row['attempt_count']}/{row['max_attempts']} driver={row['driver']} model={row['model']}",
+    ]
+    branch = str(row["branch"] or "")
+    if branch:
+        lines.append(f"branch={branch}")
+
+    pr_url = str(row["pr_url"] or "")
+    if pr_url:
+        lines.append(f"pr={pr_url}")
+    elif row["pr_number"] is not None:
+        lines.append(f"pr=#{row['pr_number']}")
+
+    ci_status = str(row["ci_status"] or "").strip()
+    if ci_status:
+        lines.append(f"ci={ci_status}")
+
+    note = str(row["last_error_reason"] or "").strip()
+    if note:
+        lines.append(f"note={note}")
+
+    return truncate_text("\n".join(lines), 1800)
+
+
+def send_progress_notification(
+    conn: sqlite3.Connection,
+    config: Optional[ProjectConfig],
+    row: sqlite3.Row,
+) -> bool:
+    if not should_send_progress_notification(config, row):
+        return False
+    assert config is not None
+
+    task_id = str(row["id"])
+    route = resolve_task_notify_route(config, row)
+    message = build_progress_message(row)
+    ok, result = dispatch_openclaw_notification(
+        config=config,
+        message=message,
+        channel=route.channel,
+        target=route.target,
+        account=route.account,
+    )
+    if not ok:
+        event(
+            conn,
+            task_id,
+            "progress_notification_failed",
+            str(row["status"]),
+            str(row["status"]),
+            "progress notify failed",
+            {
+                "channel": route.channel,
+                "target": route.target,
+                "account": route.account,
+                "sourceSessionKey": route.source_session_key,
+                "result": result,
+            },
+        )
+        return False
+
+    sent_at = now_iso()
+    conn.execute(
+        """
+        INSERT INTO task_progress_notifications(task_id, status, channel, target, message, result, sent_at)
+        VALUES(?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            task_id,
+            str(row["status"]),
+            route.channel,
+            route.target,
+            message,
+            result,
+            sent_at,
+        ),
+    )
+    conn.execute(
+        "UPDATE tasks SET last_progress_notified_at = ?, updated_at = ? WHERE id = ?",
+        (sent_at, sent_at, task_id),
+    )
+    event(
+        conn,
+        task_id,
+        "progress_notification_sent",
+        str(row["status"]),
+        str(row["status"]),
+        "progress update sent",
+        {
+            "channel": route.channel,
+            "target": route.target,
+            "account": route.account,
+            "sourceSessionKey": route.source_session_key,
+        },
+    )
+    return True
+
+
+def flush_progress_notifications(conn: sqlite3.Connection, config: Optional[ProjectConfig], task_id: Optional[str] = None) -> int:
+    if config is None:
+        return 0
+    rows_query = """
+        SELECT *
+        FROM tasks
+        WHERE status IN (?, ?, ?, ?, ?)
+    """
+    params: List[Any] = [
+        STATUS_RUNNING,
+        STATUS_PR_CREATED,
+        STATUS_CI_FAILED,
+        STATUS_CI_PASSED,
+        STATUS_REVIEW_CHANGES,
+    ]
+    if task_id:
+        rows_query += " AND id = ?"
+        params.append(task_id)
+
+    rows = conn.execute(rows_query, params).fetchall()
+    sent = 0
+    for row in rows:
+        if send_progress_notification(conn, config, row):
+            sent += 1
+    return sent
+
+
 def flush_pending_notifications(conn: sqlite3.Connection, config: Optional[ProjectConfig], task_id: Optional[str] = None) -> int:
     if config is None:
         return 0
@@ -1339,6 +1601,8 @@ def create_or_replace_task(
     log_file: str,
     attempt_count: int,
     notify_route: NotifyRoute,
+    progress_enabled: bool,
+    progress_interval_minutes: int,
 ) -> None:
     now = now_iso()
     conn.execute(
@@ -1348,11 +1612,12 @@ def create_or_replace_task(
           repo_path, base_branch, branch, worktree_path, tmux_session,
           log_path, prompt_text, attempt_count, max_attempts,
           notify_on_ready, notify_channel, notify_target, notify_account, source_session_key,
+          progress_notify_enabled, progress_notify_interval_minutes, last_progress_notified_at,
           ci_status, pr_number, pr_url,
           mergeable, ui_change_detected, last_error_code,
           last_error_reason, last_error_evidence,
           created_at, started_at, completed_at, updated_at
-        ) VALUES(?, ?, ?, ?, 'medium', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, ?, ?, NULL, ?)
+        ) VALUES(?, ?, ?, ?, 'medium', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, ?, ?, NULL, ?)
         ON CONFLICT(id) DO UPDATE SET
           title = excluded.title,
           description = excluded.description,
@@ -1373,6 +1638,9 @@ def create_or_replace_task(
           notify_target = excluded.notify_target,
           notify_account = excluded.notify_account,
           source_session_key = excluded.source_session_key,
+          progress_notify_enabled = excluded.progress_notify_enabled,
+          progress_notify_interval_minutes = excluded.progress_notify_interval_minutes,
+          last_progress_notified_at = NULL,
           ci_status = NULL,
           pr_number = NULL,
           pr_url = NULL,
@@ -1407,6 +1675,8 @@ def create_or_replace_task(
             notify_route.target,
             notify_route.account,
             notify_route.source_session_key,
+            1 if progress_enabled else 0,
+            max(0, int(progress_interval_minutes)),
             now,
             now,
             now,
@@ -1472,6 +1742,7 @@ def cmd_task_spawn(args: argparse.Namespace) -> None:
     model = normalize_model_for_driver(driver_name, model)
     effort = config.reasoning.get(driver_name, "high")
     notify_route = resolve_spawn_notify_route(args, config)
+    progress_enabled, progress_interval_minutes = resolve_progress_settings(args, config)
 
     try:
         launch_result = driver.launch(
@@ -1513,6 +1784,8 @@ def cmd_task_spawn(args: argparse.Namespace) -> None:
             log_file=log_file,
             attempt_count=attempts,
             notify_route=notify_route,
+            progress_enabled=progress_enabled,
+            progress_interval_minutes=progress_interval_minutes,
         )
         ensure_checks_row(conn, task_id)
         insert_attempt(conn, task_id, attempts, driver_name, launch_result.model, session, raw_prompt)
@@ -1529,6 +1802,8 @@ def cmd_task_spawn(args: argparse.Namespace) -> None:
                 "notifyTarget": notify_route.target,
                 "notifyAccount": notify_route.account,
                 "sourceSessionKey": notify_route.source_session_key,
+                "progressEnabled": progress_enabled,
+                "progressEveryMinutes": progress_interval_minutes,
             },
         )
         write_projection(conn, repo)
@@ -1544,6 +1819,9 @@ def cmd_task_spawn(args: argparse.Namespace) -> None:
     print(f"notify_target: {notify_route.target or '<none>'}")
     if notify_route.source_session_key:
         print(f"source_session: {notify_route.source_session_key}")
+    print(f"progress_updates: {'enabled' if progress_enabled else 'disabled'}")
+    if progress_enabled:
+        print(f"progress_every_minutes: {progress_interval_minutes}")
     print(f"status: {STATUS_RUNNING}")
 
 
@@ -2025,6 +2303,7 @@ def cmd_monitor_tick(args: argparse.Namespace) -> None:
     monitored = 0
     retries = 0
     notifications_sent = 0
+    progress_notifications_sent = 0
 
     with connect(repo) as conn:
         rows = conn.execute(
@@ -2071,12 +2350,14 @@ def cmd_monitor_tick(args: argparse.Namespace) -> None:
             retries += 1
 
         notifications_sent = flush_pending_notifications(conn, config)
+        progress_notifications_sent = flush_progress_notifications(conn, config)
         write_projection(conn, repo)
 
     print(f"repo: {repo}")
     print(f"monitored: {monitored}")
     print(f"retries_launched: {retries}")
     print(f"notifications_sent: {notifications_sent}")
+    print(f"progress_notifications_sent: {progress_notifications_sent}")
 
 
 def cmd_cleanup_tick(args: argparse.Namespace) -> None:
@@ -2167,6 +2448,8 @@ def build_parser() -> argparse.ArgumentParser:
     spawn.add_argument("--notify-channel", required=False)
     spawn.add_argument("--notify-target", required=False)
     spawn.add_argument("--notify-account", required=False)
+    spawn.add_argument("--progress-every-minutes", type=int, required=False)
+    spawn.add_argument("--no-progress-updates", action="store_true")
     spawn.set_defaults(func=cmd_task_spawn)
 
     redirect = task_sub.add_parser("redirect", help="Redirect running task")

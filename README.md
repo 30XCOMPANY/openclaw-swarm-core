@@ -92,6 +92,7 @@ Seed generates project `.openclaw/` wrappers:
 ./.openclaw/spawn-agent.sh \
   --id "task-$(date +%s)" \
   --agent codex \
+  --progress-every 5 \
   --prompt "ship feature X"
 
 # 2) Mid-flight correction
@@ -226,6 +227,8 @@ Notifications are sent by OpenClaw itself, not raw webhook scripts.
 - routing priority: task source session target -> project static target
 - recommended events: `ready_to_merge`, `merged`
 - optional noisy events (`abandoned`, `failed`, `ci_failed`, `review_changes_requested`) require `allow_failure_events = true`
+- progress output layer: active tasks emit `System: [swarm-progress] ...` every 5 minutes by default
+- per-task override: pass `--progress-every <minutes>` at spawn, or `--no-progress` to disable
 
 ---
 

@@ -63,6 +63,7 @@ cd /abs/path/to/repo
 ./.openclaw/spawn-agent.sh \
   --id "fix-login-timeout-$(date +%s)" \
   --agent claudecode \
+  --progress-every 5 \
   --prompt "Fix login timeout and add tests"
 ```
 
@@ -72,6 +73,7 @@ cd /abs/path/to/repo
   --repo /abs/path/to/repo \
   --task-id fix-login-timeout-$(date +%s) \
   --driver claudecode \
+  --progress-every-minutes 5 \
   --prompt "Fix login timeout and add tests"
 ```
 
@@ -87,6 +89,11 @@ cd /abs/path/to/repo
 - `codex` / `claudecode` / `gemini-cli`：显式配置时使用裸模型名。
 - `opencode`：显式配置时使用 `provider/model`（示例：`default/gpt-5.3-codex`）。
 - 历史值 `openai/gpt-5.3-codex` 会自动归一化为 `default/gpt-5.3-codex`。
+
+进度播报参数
+- 默认每 5 分钟输出一次 `System: [swarm-progress] ...`
+- `--progress-every <minutes>` / `--progress-every-minutes <minutes>` 覆盖任务级间隔
+- `--no-progress` / `--no-progress-updates` 可关闭该任务进度播报
 
 ## 6. 监控与操作
 
@@ -191,6 +198,14 @@ allow_failure_events = false
 - 每轮 `monitor tick` 会补偿尝试未发送状态通知
 - 只有在 `enabled=true` 且 `target` 明确配置时才会发消息，避免跨频道误发
 - 若 `spawn` 能推断来源会话（如 `agent:main:discord:channel:<id>`），优先回发到该任务来源频道
+- 进度播报走同一条通知通道，每 `X` 分钟输出一次任务当前在做什么与下一步
+
+进度播报默认配置
+```toml
+[progress]
+enabled = true
+interval_minutes = 5
+```
 
 ## 11. 日常排障
 
@@ -211,6 +226,7 @@ tail -n 200 .openclaw/logs/<task-id>.log
 ```bash
 sqlite3 .openclaw/swarm.db "select id,status,driver,attempt_count,pr_number from tasks order by created_at desc limit 20;"
 sqlite3 .openclaw/swarm.db "select task_id,status,channel,target,sent_at from task_notifications order by sent_at desc limit 20;"
+sqlite3 .openclaw/swarm.db "select task_id,status,target,sent_at from task_progress_notifications order by sent_at desc limit 20;"
 ```
 
 查看 tmux 会话
