@@ -200,10 +200,10 @@ flowchart TB
 
 | Driver | Primary Use | Default Model | Notes |
 |---|---|---|---|
-| `codex` | backend, complex reasoning | `gpt-5.3-codex` | default driver |
-| `claudecode` | frontend, rapid iteration | `claude-sonnet-4-6` | `claude` alias supported |
+| `codex` | backend, complex reasoning | inherit Codex default | default driver |
+| `claudecode` | frontend, rapid iteration | inherit Claude Code default | `claude` alias supported |
 | `opencode` | OpenCode flows | inherit OpenCode default | set `model` only when you want explicit override |
-| `gemini-cli` | Gemini CLI execution | `gemini-2.5-pro` | auth required |
+| `gemini-cli` | Gemini CLI execution | inherit Gemini CLI default | auth required |
 
 `gemini-cli` can be toggled per project:
 

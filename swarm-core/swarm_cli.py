@@ -396,11 +396,11 @@ def default_project_toml(repo_path: str) -> str:
         events = ["ready_to_merge", "merged", "abandoned"]
 
         [drivers.codex]
-        model = "gpt-5.3-codex"
+        # Optional. Leave unset to use Codex CLI default model.
         reasoning = "high"
 
         [drivers.claudecode]
-        model = "claude-sonnet-4-6"
+        # Optional. Leave unset to use Claude Code CLI default model.
         reasoning = "high"
 
         [drivers.opencode]
@@ -408,7 +408,7 @@ def default_project_toml(repo_path: str) -> str:
         reasoning = "high"
 
         [drivers.gemini-cli]
-        model = "gemini-2.5-pro"
+        # Optional. Leave unset to use Gemini CLI default model.
         reasoning = "high"
         enabled = true
         """
@@ -421,8 +421,8 @@ def normalize_model_for_driver(driver_name: str, model: str) -> str:
         return value
 
     name = driver_name.strip().lower()
-    if name == "codex":
-        # Codex CLI expects plain model IDs, not provider/model.
+    if name in {"codex", "claudecode", "gemini-cli"}:
+        # These CLIs expect plain model IDs, not provider/model.
         if "/" in value:
             return value.split("/", 1)[1]
         return value
@@ -471,10 +471,10 @@ def load_project_config(repo_path: str) -> ProjectConfig:
     notify_events = [str(item).strip() for item in notify_events_raw if str(item).strip()]
 
     models: Dict[str, str] = {
-        "codex": "gpt-5.3-codex",
-        "claudecode": "claude-sonnet-4-6",
+        "codex": "",
+        "claudecode": "",
         "opencode": "",
-        "gemini-cli": "gemini-2.5-pro",
+        "gemini-cli": "",
     }
     reasoning: Dict[str, str] = {
         "codex": "high",
@@ -1284,10 +1284,7 @@ def cmd_task_spawn(args: argparse.Namespace) -> None:
     log_file = str(openclaw_dir(repo) / "logs" / f"{task_id}.log")
 
     prompt = build_prompt(raw_prompt, task_id=task_id, branch=branch, base_branch=config.base_branch)
-    if driver_name == "opencode":
-        model = config.models.get(driver_name, "")
-    else:
-        model = config.models.get(driver_name, config.models.get("codex", "gpt-5.3-codex"))
+    model = config.models.get(driver_name, "")
     model = normalize_model_for_driver(driver_name, model)
     effort = config.reasoning.get(driver_name, "high")
 

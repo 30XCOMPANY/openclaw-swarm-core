@@ -83,9 +83,9 @@ cd /abs/path/to/repo
 - `gemini-cli`
 
 模型格式注意
-- `codex` 使用裸模型名（示例：`gpt-5.3-codex`）。
-- `opencode` 默认不传 `--model`，直接沿用你本机 OpenCode 已配置的默认模型。
-- 若你显式给 `opencode` 配置 `model`，请用 `provider/model`（示例：`default/gpt-5.3-codex`）。
+- 默认行为：若未显式配置 `model`，所有 driver 都沿用各自 CLI 本机默认模型。
+- `codex` / `claudecode` / `gemini-cli`：显式配置时使用裸模型名。
+- `opencode`：显式配置时使用 `provider/model`（示例：`default/gpt-5.3-codex`）。
 - 历史值 `openai/gpt-5.3-codex` 会自动归一化为 `default/gpt-5.3-codex`。
 
 ## 6. 监控与操作

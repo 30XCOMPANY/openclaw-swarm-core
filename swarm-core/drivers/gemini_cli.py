@@ -33,9 +33,10 @@ class GeminiCliDriver(BaseDriver):
                 reason="gemini CLI is not installed or not in PATH",
             )
 
+        model_arg = f"--model {shlex.quote(ctx.model)} " if (ctx.model or "").strip() else ""
         command = (
             "gemini "
-            f"--model {shlex.quote(ctx.model)} "
+            f"{model_arg}"
             "--approval-mode yolo "
             f"--prompt {shlex.quote(ctx.prompt)}"
         )

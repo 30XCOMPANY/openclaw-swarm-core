@@ -33,9 +33,10 @@ class ClaudeCodeDriver(BaseDriver):
                 reason="claude CLI is not installed or not in PATH",
             )
 
+        model_arg = f"--model {shlex.quote(ctx.model)} " if (ctx.model or "").strip() else ""
         command = (
             "claude "
-            f"--model {shlex.quote(ctx.model)} "
+            f"{model_arg}"
             "--dangerously-skip-permissions "
             f"-p {shlex.quote(ctx.prompt)}"
         )

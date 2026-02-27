@@ -33,9 +33,10 @@ class CodexDriver(BaseDriver):
                 reason="codex CLI is not installed or not in PATH",
             )
 
+        model_arg = f"--model {shlex.quote(ctx.model)} " if (ctx.model or "").strip() else ""
         command = (
             "codex exec "
-            f"--model {shlex.quote(ctx.model)} "
+            f"{model_arg}"
             f"-c {shlex.quote(f'model_reasoning_effort={ctx.reasoning_effort}')} "
             "--dangerously-bypass-approvals-and-sandbox "
             f"{shlex.quote(ctx.prompt)}"
