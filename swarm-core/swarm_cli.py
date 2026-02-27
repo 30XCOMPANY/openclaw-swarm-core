@@ -404,7 +404,7 @@ def default_project_toml(repo_path: str) -> str:
         reasoning = "high"
 
         [drivers.opencode]
-        model = "default/gpt-5.3-codex"
+        # Optional. Leave unset to use OpenCode's own configured default model.
         reasoning = "high"
 
         [drivers.gemini-cli]
@@ -473,7 +473,7 @@ def load_project_config(repo_path: str) -> ProjectConfig:
     models: Dict[str, str] = {
         "codex": "gpt-5.3-codex",
         "claudecode": "claude-sonnet-4-6",
-        "opencode": "default/gpt-5.3-codex",
+        "opencode": "",
         "gemini-cli": "gemini-2.5-pro",
     }
     reasoning: Dict[str, str] = {
@@ -1284,7 +1284,10 @@ def cmd_task_spawn(args: argparse.Namespace) -> None:
     log_file = str(openclaw_dir(repo) / "logs" / f"{task_id}.log")
 
     prompt = build_prompt(raw_prompt, task_id=task_id, branch=branch, base_branch=config.base_branch)
-    model = config.models.get(driver_name, config.models.get("codex", "gpt-5.3-codex"))
+    if driver_name == "opencode":
+        model = config.models.get(driver_name, "")
+    else:
+        model = config.models.get(driver_name, config.models.get("codex", "gpt-5.3-codex"))
     model = normalize_model_for_driver(driver_name, model)
     effort = config.reasoning.get(driver_name, "high")
 
@@ -1335,7 +1338,7 @@ def cmd_task_spawn(args: argparse.Namespace) -> None:
 
     print(f"task_id: {task_id}")
     print(f"driver: {driver_name}")
-    print(f"model: {launch_result.model}")
+    print(f"model: {launch_result.model or '<driver-default>'}")
     print(f"session: {session}")
     print(f"branch: {branch}")
     print(f"worktree: {worktree}")

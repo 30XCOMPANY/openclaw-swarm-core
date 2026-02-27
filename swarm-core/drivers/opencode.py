@@ -34,9 +34,10 @@ class OpenCodeDriver(BaseDriver):
             )
 
         variant = ctx.reasoning_effort or "high"
+        model_arg = f"--model {shlex.quote(ctx.model)} " if (ctx.model or "").strip() else ""
         command = (
             "opencode run "
-            f"--model {shlex.quote(ctx.model)} "
+            f"{model_arg}"
             f"--variant {shlex.quote(variant)} "
             f"{shlex.quote(ctx.prompt)}"
         )
