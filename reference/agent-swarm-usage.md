@@ -82,6 +82,11 @@ cd /abs/path/to/repo
 - `opencode`
 - `gemini-cli`
 
+模型格式注意
+- `codex` 使用裸模型名（示例：`gpt-5.3-codex`）。
+- `opencode` 使用 `provider/model`（示例：`default/gpt-5.3-codex`）。
+- 若历史配置写成 `openai/gpt-5.3-codex`，swarm 会自动归一化为 `default/gpt-5.3-codex`。
+
 ## 6. 监控与操作
 
 状态查看
