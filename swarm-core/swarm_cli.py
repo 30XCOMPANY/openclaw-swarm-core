@@ -2315,7 +2315,7 @@ def cmd_monitor_tick(args: argparse.Namespace) -> None:
                 STATUS_CI_PASSED,
                 STATUS_REVIEW_CHANGES,
                 STATUS_READY,
-                STATUS_FAILED,
+                STATUS_QUEUED,
             ),
         ).fetchall()
 
