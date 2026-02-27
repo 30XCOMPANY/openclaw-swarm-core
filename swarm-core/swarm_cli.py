@@ -108,6 +108,14 @@ class ProjectConfig:
     notify_dry_run: bool
 
 
+@dataclass(slots=True)
+class NotifyRoute:
+    channel: str
+    target: str
+    account: str
+    source_session_key: str
+
+
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
@@ -318,54 +326,141 @@ def openclaw_state_dir() -> Path:
     return Path.home() / ".openclaw"
 
 
-def discover_openclaw_notification_defaults() -> Tuple[str, str]:
-    state_dir = openclaw_state_dir()
-    config_path = state_dir / "openclaw.json"
-    commands_log_path = state_dir / "logs" / "commands.log"
-
-    account = ""
-    target = ""
-
+def load_openclaw_bindings() -> List[Dict[str, Any]]:
+    config_path = openclaw_state_dir() / "openclaw.json"
+    if not config_path.exists():
+        return []
     try:
-        if config_path.exists():
-            parsed = json.loads(config_path.read_text(encoding="utf-8"))
-            bindings = parsed.get("bindings") if isinstance(parsed.get("bindings"), list) else []
-            for item in bindings:
-                if not isinstance(item, dict):
-                    continue
-                if str(item.get("agentId") or "") != "main":
-                    continue
-                match = item.get("match") if isinstance(item.get("match"), dict) else {}
-                if str(match.get("channel") or "") != "discord":
-                    continue
-                account_id = str(match.get("accountId") or "").strip()
-                if account_id:
-                    account = account_id
-                    break
+        parsed = json.loads(config_path.read_text(encoding="utf-8"))
     except Exception:
-        account = ""
+        return []
+    bindings = parsed.get("bindings") if isinstance(parsed.get("bindings"), list) else []
+    return [item for item in bindings if isinstance(item, dict)]
+
+
+def binding_account_for_agent(channel: str, agent_id: str) -> str:
+    chan = (channel or "").strip().lower()
+    agent = (agent_id or "").strip()
+    if not chan or not agent:
+        return ""
+    for item in load_openclaw_bindings():
+        if str(item.get("agentId") or "").strip() != agent:
+            continue
+        match = item.get("match") if isinstance(item.get("match"), dict) else {}
+        if str(match.get("channel") or "").strip().lower() != chan:
+            continue
+        account_id = str(match.get("accountId") or "").strip()
+        if account_id:
+            return account_id
+    return ""
+
+
+def parse_discord_route_from_session_key(session_key: str) -> Optional[NotifyRoute]:
+    raw = str(session_key or "").strip()
+    match = re.match(r"^agent:([^:]+):discord:channel:(\d+)$", raw)
+    if not match:
+        return None
+    agent_id = match.group(1)
+    channel_id = match.group(2)
+    return NotifyRoute(
+        channel="discord",
+        target=f"channel:{channel_id}",
+        account=binding_account_for_agent("discord", agent_id),
+        source_session_key=raw,
+    )
+
+
+def discover_recent_discord_session_key(max_age_seconds: int = 900) -> str:
+    commands_log_path = openclaw_state_dir() / "logs" / "commands.log"
+    if not commands_log_path.exists():
+        return ""
+    try:
+        lines = commands_log_path.read_text(encoding="utf-8").splitlines()
+    except Exception:
+        return ""
 
     try:
-        if commands_log_path.exists():
-            lines = commands_log_path.read_text(encoding="utf-8").splitlines()
-            for line in reversed(lines):
-                if not line.strip():
-                    continue
+        now = datetime.now(timezone.utc)
+        for line in reversed(lines):
+            if not line.strip():
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if str(event.get("source") or "").strip().lower() != "discord":
+                continue
+            session_key = str(event.get("sessionKey") or "").strip()
+            if not parse_discord_route_from_session_key(session_key):
+                continue
+
+            timestamp_raw = str(event.get("timestamp") or "").strip()
+            if timestamp_raw:
                 try:
-                    event = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                if str(event.get("source") or "") != "discord":
-                    continue
-                session_key = str(event.get("sessionKey") or "")
-                match = re.search(r":discord:channel:(\d+)", session_key)
-                if match:
-                    target = f"channel:{match.group(1)}"
-                    break
+                    event_time = datetime.fromisoformat(timestamp_raw.replace("Z", "+00:00"))
+                    if (now - event_time).total_seconds() > max_age_seconds:
+                        continue
+                except Exception:
+                    pass
+            return session_key
     except Exception:
-        target = ""
+        return ""
+    return ""
 
-    return account, target
+
+def first_env(names: Iterable[str]) -> str:
+    for name in names:
+        value = str(os.getenv(name) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def resolve_spawn_notify_route(args: argparse.Namespace, config: ProjectConfig) -> NotifyRoute:
+    explicit_session = str(getattr(args, "source_session_key", "") or "").strip()
+    explicit_channel = str(getattr(args, "notify_channel", "") or "").strip().lower()
+    explicit_target = str(getattr(args, "notify_target", "") or "").strip()
+    explicit_account = str(getattr(args, "notify_account", "") or "").strip()
+
+    if explicit_target:
+        return NotifyRoute(
+            channel=explicit_channel or (config.notify_channel or "discord"),
+            target=explicit_target,
+            account=explicit_account or config.notify_account,
+            source_session_key=explicit_session,
+        )
+
+    session_key = (
+        explicit_session
+        or first_env(
+            [
+                "OPENCLAW_SESSION_KEY",
+                "OPENCLAW_SESSIONKEY",
+                "SESSION_KEY",
+                "OPENCLAW_CONTEXT_SESSION_KEY",
+            ]
+        )
+        or discover_recent_discord_session_key()
+    )
+
+    derived = parse_discord_route_from_session_key(session_key) if session_key else None
+    if derived is None:
+        return NotifyRoute(
+            channel=explicit_channel,
+            target=explicit_target,
+            account=explicit_account,
+            source_session_key=explicit_session or session_key,
+        )
+
+    if explicit_channel:
+        derived.channel = explicit_channel
+    if explicit_target:
+        derived.target = explicit_target
+    if explicit_account:
+        derived.account = explicit_account
+    elif not derived.account:
+        derived.account = config.notify_account
+    return derived
 
 
 def default_project_toml(repo_path: str) -> str:
@@ -541,6 +636,15 @@ def connect(repo_path: str) -> sqlite3.Connection:
     return conn
 
 
+def ensure_table_columns(conn: sqlite3.Connection, table: str, specs: Dict[str, str]) -> None:
+    existing_rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
+    existing = {str(row["name"]) for row in existing_rows}
+    for name, column_spec in specs.items():
+        if name in existing:
+            continue
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {column_spec}")
+
+
 def init_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(
         """
@@ -562,6 +666,10 @@ def init_schema(conn: sqlite3.Connection) -> None:
           attempt_count INTEGER NOT NULL DEFAULT 0,
           max_attempts INTEGER NOT NULL DEFAULT 3,
           notify_on_ready INTEGER NOT NULL DEFAULT 1,
+          notify_channel TEXT,
+          notify_target TEXT,
+          notify_account TEXT,
+          source_session_key TEXT,
           ci_status TEXT,
           pr_number INTEGER,
           pr_url TEXT,
@@ -646,6 +754,16 @@ def init_schema(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_events_task_id ON task_events(task_id);
         CREATE INDEX IF NOT EXISTS idx_notifications_task_id ON task_notifications(task_id);
         """
+    )
+    ensure_table_columns(
+        conn,
+        "tasks",
+        {
+            "notify_channel": "TEXT",
+            "notify_target": "TEXT",
+            "notify_account": "TEXT",
+            "source_session_key": "TEXT",
+        },
     )
 
 
@@ -750,6 +868,19 @@ def is_temp_repo_path(repo_path: str) -> bool:
     return resolved.startswith("/tmp/") or resolved.startswith("/private/tmp/")
 
 
+def resolve_task_notify_route(config: ProjectConfig, row: sqlite3.Row) -> NotifyRoute:
+    channel = str(row["notify_channel"] or config.notify_channel or "").strip().lower()
+    target = str(row["notify_target"] or config.notify_target or "").strip()
+    account = str(row["notify_account"] or config.notify_account or "").strip()
+    source_session_key = str(row["source_session_key"] or "").strip()
+    return NotifyRoute(
+        channel=channel,
+        target=target,
+        account=account,
+        source_session_key=source_session_key,
+    )
+
+
 def should_send_notification(config: Optional[ProjectConfig], row: sqlite3.Row, status: str) -> bool:
     if config is None:
         return False
@@ -757,9 +888,11 @@ def should_send_notification(config: Optional[ProjectConfig], row: sqlite3.Row, 
         return False
     if config.notify_provider != "openclaw":
         return False
-    if not config.notify_channel or not config.notify_target:
-        return False
     if is_temp_repo_path(str(row["repo_path"] or config.repo_path)):
+        return False
+
+    route = resolve_task_notify_route(config, row)
+    if not route.channel or not route.target:
         return False
 
     enabled_events = set(normalized_notify_events(config))
@@ -812,21 +945,27 @@ def build_notification_message(row: sqlite3.Row, status: str, detail: str = "") 
     return truncate_text("\n".join(lines), 1800)
 
 
-def dispatch_openclaw_notification(config: ProjectConfig, message: str) -> Tuple[bool, str]:
+def dispatch_openclaw_notification(
+    config: ProjectConfig,
+    message: str,
+    channel: str,
+    target: str,
+    account: str,
+) -> Tuple[bool, str]:
     cmd = [
         "openclaw",
         "message",
         "send",
         "--channel",
-        config.notify_channel,
+        channel,
         "--target",
-        config.notify_target,
+        target,
         "--message",
         message,
         "--json",
     ]
-    if config.notify_account:
-        cmd.extend(["--account", config.notify_account])
+    if account:
+        cmd.extend(["--account", account])
     if config.notify_silent:
         cmd.append("--silent")
     if config.notify_dry_run:
@@ -861,8 +1000,15 @@ def send_status_notification(
         return False
 
     assert config is not None
+    route = resolve_task_notify_route(config, row)
     message = build_notification_message(row, status, detail)
-    ok, result = dispatch_openclaw_notification(config, message)
+    ok, result = dispatch_openclaw_notification(
+        config=config,
+        message=message,
+        channel=route.channel,
+        target=route.target,
+        account=route.account,
+    )
     if not ok:
         event(
             conn,
@@ -873,8 +1019,10 @@ def send_status_notification(
             f"notify failed: {status}",
             {
                 "provider": config.notify_provider,
-                "channel": config.notify_channel,
-                "target": config.notify_target,
+                "channel": route.channel,
+                "target": route.target,
+                "account": route.account,
+                "sourceSessionKey": route.source_session_key,
                 "result": result,
             },
         )
@@ -888,8 +1036,8 @@ def send_status_notification(
         (
             task_id,
             status,
-            config.notify_channel,
-            config.notify_target,
+            route.channel,
+            route.target,
             message,
             result,
             now_iso(),
@@ -904,8 +1052,10 @@ def send_status_notification(
         f"notified: {status}",
         {
             "provider": config.notify_provider,
-            "channel": config.notify_channel,
-            "target": config.notify_target,
+            "channel": route.channel,
+            "target": route.target,
+            "account": route.account,
+            "sourceSessionKey": route.source_session_key,
         },
     )
     return True
@@ -914,7 +1064,7 @@ def send_status_notification(
 def flush_pending_notifications(conn: sqlite3.Connection, config: Optional[ProjectConfig], task_id: Optional[str] = None) -> int:
     if config is None:
         return 0
-    if not config.notify_enabled or config.notify_provider != "openclaw" or not config.notify_target:
+    if not config.notify_enabled or config.notify_provider != "openclaw":
         return 0
 
     statuses = normalized_notify_events(config)
@@ -1188,6 +1338,7 @@ def create_or_replace_task(
     session: str,
     log_file: str,
     attempt_count: int,
+    notify_route: NotifyRoute,
 ) -> None:
     now = now_iso()
     conn.execute(
@@ -1196,11 +1347,12 @@ def create_or_replace_task(
           id, title, description, status, priority, driver, model,
           repo_path, base_branch, branch, worktree_path, tmux_session,
           log_path, prompt_text, attempt_count, max_attempts,
-          notify_on_ready, ci_status, pr_number, pr_url,
+          notify_on_ready, notify_channel, notify_target, notify_account, source_session_key,
+          ci_status, pr_number, pr_url,
           mergeable, ui_change_detected, last_error_code,
           last_error_reason, last_error_evidence,
           created_at, started_at, completed_at, updated_at
-        ) VALUES(?, ?, ?, ?, 'medium', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, ?, ?, NULL, ?)
+        ) VALUES(?, ?, ?, ?, 'medium', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, ?, ?, NULL, ?)
         ON CONFLICT(id) DO UPDATE SET
           title = excluded.title,
           description = excluded.description,
@@ -1217,6 +1369,10 @@ def create_or_replace_task(
           attempt_count = excluded.attempt_count,
           max_attempts = excluded.max_attempts,
           notify_on_ready = excluded.notify_on_ready,
+          notify_channel = excluded.notify_channel,
+          notify_target = excluded.notify_target,
+          notify_account = excluded.notify_account,
+          source_session_key = excluded.source_session_key,
           ci_status = NULL,
           pr_number = NULL,
           pr_url = NULL,
@@ -1247,6 +1403,10 @@ def create_or_replace_task(
             attempt_count,
             config.max_attempts,
             1 if config.notify_on_ready else 0,
+            notify_route.channel,
+            notify_route.target,
+            notify_route.account,
+            notify_route.source_session_key,
             now,
             now,
             now,
@@ -1311,6 +1471,7 @@ def cmd_task_spawn(args: argparse.Namespace) -> None:
     model = config.models.get(driver_name, "")
     model = normalize_model_for_driver(driver_name, model)
     effort = config.reasoning.get(driver_name, "high")
+    notify_route = resolve_spawn_notify_route(args, config)
 
     try:
         launch_result = driver.launch(
@@ -1351,10 +1512,25 @@ def cmd_task_spawn(args: argparse.Namespace) -> None:
             session=session,
             log_file=log_file,
             attempt_count=attempts,
+            notify_route=notify_route,
         )
         ensure_checks_row(conn, task_id)
         insert_attempt(conn, task_id, attempts, driver_name, launch_result.model, session, raw_prompt)
-        event(conn, task_id, "spawned", STATUS_QUEUED, STATUS_RUNNING, "Task spawned", {"driver": driver_name})
+        event(
+            conn,
+            task_id,
+            "spawned",
+            STATUS_QUEUED,
+            STATUS_RUNNING,
+            "Task spawned",
+            {
+                "driver": driver_name,
+                "notifyChannel": notify_route.channel,
+                "notifyTarget": notify_route.target,
+                "notifyAccount": notify_route.account,
+                "sourceSessionKey": notify_route.source_session_key,
+            },
+        )
         write_projection(conn, repo)
 
     print(f"task_id: {task_id}")
@@ -1364,6 +1540,10 @@ def cmd_task_spawn(args: argparse.Namespace) -> None:
     print(f"branch: {branch}")
     print(f"worktree: {worktree}")
     print(f"log: {log_file}")
+    print(f"notify_channel: {notify_route.channel or '<none>'}")
+    print(f"notify_target: {notify_route.target or '<none>'}")
+    if notify_route.source_session_key:
+        print(f"source_session: {notify_route.source_session_key}")
     print(f"status: {STATUS_RUNNING}")
 
 
@@ -1983,6 +2163,10 @@ def build_parser() -> argparse.ArgumentParser:
     spawn.add_argument("--driver", required=True, choices=["auto", "codex", "claudecode", "opencode", "gemini-cli", "claude"])
     spawn.add_argument("--prompt-file", required=False)
     spawn.add_argument("--prompt", required=False)
+    spawn.add_argument("--source-session-key", required=False)
+    spawn.add_argument("--notify-channel", required=False)
+    spawn.add_argument("--notify-target", required=False)
+    spawn.add_argument("--notify-account", required=False)
     spawn.set_defaults(func=cmd_task_spawn)
 
     redirect = task_sub.add_parser("redirect", help="Redirect running task")

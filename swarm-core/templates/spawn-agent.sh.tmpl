@@ -106,6 +106,21 @@ case "$DRIVER" in
     ;;
 esac
 
+EXTRA_NOTIFY_ARGS=()
+SOURCE_SESSION_KEY="${OPENCLAW_SESSION_KEY:-${OPENCLAW_CONTEXT_SESSION_KEY:-${SESSION_KEY:-}}}"
+if [[ -n "$SOURCE_SESSION_KEY" ]]; then
+  EXTRA_NOTIFY_ARGS+=(--source-session-key "$SOURCE_SESSION_KEY")
+fi
+if [[ -n "${OPENCLAW_NOTIFY_CHANNEL:-}" ]]; then
+  EXTRA_NOTIFY_ARGS+=(--notify-channel "${OPENCLAW_NOTIFY_CHANNEL}")
+fi
+if [[ -n "${OPENCLAW_NOTIFY_TARGET:-}" ]]; then
+  EXTRA_NOTIFY_ARGS+=(--notify-target "${OPENCLAW_NOTIFY_TARGET}")
+fi
+if [[ -n "${OPENCLAW_NOTIFY_ACCOUNT:-}" ]]; then
+  EXTRA_NOTIFY_ARGS+=(--notify-account "${OPENCLAW_NOTIFY_ACCOUNT}")
+fi
+
 if [[ -z "$TASK_ID" ]]; then
   base="${DESCRIPTION:-task}"
   slug="$(echo "$base" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9._-' '-' | sed 's/^-*//; s/-*$//')"
@@ -135,6 +150,7 @@ if [[ -n "$PROMPT_FILE" ]]; then
     --repo "$REPO_PATH" \
     --task-id "$TASK_ID" \
     --driver "$DRIVER" \
+    "${EXTRA_NOTIFY_ARGS[@]}" \
     --prompt-file "$PROMPT_FILE"
 fi
 
@@ -142,4 +158,5 @@ exec "$SWARM_BIN" task spawn \
   --repo "$REPO_PATH" \
   --task-id "$TASK_ID" \
   --driver "$DRIVER" \
+  "${EXTRA_NOTIFY_ARGS[@]}" \
   --prompt "$PROMPT"

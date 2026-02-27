@@ -190,6 +190,7 @@ allow_failure_events = false
 - 发送失败会记事件 不中断状态机
 - 每轮 `monitor tick` 会补偿尝试未发送状态通知
 - 只有在 `enabled=true` 且 `target` 明确配置时才会发消息，避免跨频道误发
+- 若 `spawn` 能推断来源会话（如 `agent:main:discord:channel:<id>`），优先回发到该任务来源频道
 
 ## 11. 日常排障
 
