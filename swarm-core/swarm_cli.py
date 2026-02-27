@@ -103,6 +103,7 @@ class ProjectConfig:
     notify_target: str
     notify_account: str
     notify_events: List[str]
+    notify_allow_failure_events: bool
     notify_silent: bool
     notify_dry_run: bool
 
@@ -372,8 +373,9 @@ def default_project_toml(repo_path: str) -> str:
     repo_name = repo.name
     worktree_base = Path.home() / "code-worktrees" / repo_name
     base_branch = detect_base_branch(repo_path)
-    notify_account, notify_target = discover_openclaw_notification_defaults()
-    notify_enabled = "true" if notify_target else "false"
+    notify_account = ""
+    notify_target = ""
+    notify_enabled = "false"
 
     return textwrap.dedent(
         f"""
@@ -393,7 +395,8 @@ def default_project_toml(repo_path: str) -> str:
         account = "{notify_account}"
         silent = false
         dry_run = false
-        events = ["ready_to_merge", "merged", "abandoned"]
+        events = ["ready_to_merge", "merged"]
+        allow_failure_events = false
 
         [drivers.codex]
         # Optional. Leave unset to use Codex CLI default model.
@@ -463,10 +466,12 @@ def load_project_config(repo_path: str) -> ProjectConfig:
     notify_account = str(notifications.get("account") or "").strip()
     notify_silent = bool(notifications.get("silent") if notifications.get("silent") is not None else False)
     notify_dry_run = bool(notifications.get("dry_run") if notifications.get("dry_run") is not None else False)
+    notify_allow_failure_events = bool(
+        notifications.get("allow_failure_events") if notifications.get("allow_failure_events") is not None else False
+    )
     notify_events_raw = notifications.get("events") if isinstance(notifications.get("events"), list) else [
         "ready_to_merge",
         "merged",
-        "abandoned",
     ]
     notify_events = [str(item).strip() for item in notify_events_raw if str(item).strip()]
 
@@ -521,6 +526,7 @@ def load_project_config(repo_path: str) -> ProjectConfig:
         notify_target=notify_target,
         notify_account=notify_account,
         notify_events=notify_events,
+        notify_allow_failure_events=notify_allow_failure_events,
         notify_silent=notify_silent,
         notify_dry_run=notify_dry_run,
     )
@@ -723,9 +729,25 @@ def check_transition(old_status: str, new_status: str) -> None:
 
 def normalized_notify_events(config: ProjectConfig) -> List[str]:
     values = [item.strip().lower() for item in config.notify_events if item.strip()]
-    if values:
-        return values
-    return [STATUS_READY, STATUS_MERGED, STATUS_ABANDONED]
+    allowed = {STATUS_READY, STATUS_MERGED}
+    if config.notify_allow_failure_events:
+        allowed.update({STATUS_ABANDONED, STATUS_FAILED, STATUS_CI_FAILED, STATUS_REVIEW_CHANGES})
+
+    result: List[str] = []
+    for value in values:
+        if value in allowed and value not in result:
+            result.append(value)
+    if result:
+        return result
+    return [STATUS_READY, STATUS_MERGED]
+
+
+def is_temp_repo_path(repo_path: str) -> bool:
+    try:
+        resolved = str(Path(repo_path).expanduser().resolve())
+    except Exception:
+        resolved = str(repo_path or "")
+    return resolved.startswith("/tmp/") or resolved.startswith("/private/tmp/")
 
 
 def should_send_notification(config: Optional[ProjectConfig], row: sqlite3.Row, status: str) -> bool:
@@ -736,6 +758,8 @@ def should_send_notification(config: Optional[ProjectConfig], row: sqlite3.Row, 
     if config.notify_provider != "openclaw":
         return False
     if not config.notify_channel or not config.notify_target:
+        return False
+    if is_temp_repo_path(str(row["repo_path"] or config.repo_path)):
         return False
 
     enabled_events = set(normalized_notify_events(config))

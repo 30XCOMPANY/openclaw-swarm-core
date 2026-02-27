@@ -222,7 +222,9 @@ Notifications are sent by OpenClaw itself, not raw webhook scripts.
 
 - sender: `openclaw message send`
 - config location: project `.openclaw/project.toml` -> `[notifications]`
-- recommended events: `ready_to_merge`, `merged`, `abandoned`
+- defaults: disabled + empty target (must be explicitly configured)
+- recommended events: `ready_to_merge`, `merged`
+- optional noisy events (`abandoned`, `failed`, `ci_failed`, `review_changes_requested`) require `allow_failure_events = true`
 
 ---
 

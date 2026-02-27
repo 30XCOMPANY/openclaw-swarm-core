@@ -175,19 +175,21 @@ openclaw cron add \
 ```toml
 [notifications]
 provider = "openclaw"
-enabled = true
+enabled = false
 channel = "discord"
-target = "channel:123456789012345678"
-account = "discord-account-id"
+target = ""
+account = ""
 silent = false
 dry_run = false
-events = ["ready_to_merge", "merged", "abandoned"]
+events = ["ready_to_merge", "merged"]
+allow_failure_events = false
 ```
 
 说明
 - 发送成功会写入 `task_notifications` 去重
 - 发送失败会记事件 不中断状态机
 - 每轮 `monitor tick` 会补偿尝试未发送状态通知
+- 只有在 `enabled=true` 且 `target` 明确配置时才会发消息，避免跨频道误发
 
 ## 11. 日常排障
 
