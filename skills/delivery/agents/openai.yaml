@@ -1,0 +1,13 @@
+# [INPUT]: /delivery SKILL.md and reference documents
+# [OUTPUT]: OpenAI-compatible agent manifest for tracked delivery skill
+# [POS]: Agent definition consumed by OpenClaw agent registry for /delivery invocation
+# [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+
+interface:
+  display_name: "Delivery"
+  short_description: "Tracked delivery with PR gates, retries, and cleanup"
+  brand_color: "#B45309"
+  default_prompt: "Use /delivery for this task. Treat it as a tracked delivery task and do not ask me to choose a harness first unless I explicitly care."
+
+policy:
+  allow_implicit_invocation: true

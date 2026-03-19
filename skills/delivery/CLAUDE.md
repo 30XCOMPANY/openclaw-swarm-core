@@ -1,7 +1,17 @@
 # delivery/
 > L2 | Parent: skills/CLAUDE.md
 
-Shell-based delivery CLI — deterministic task orchestration (spawn/monitor/kill/cleanup).
+Self-contained delivery skill — shell CLI + docs. Merges old `/delivery` and `/swarm` into one surface.
+
+## Members
+
+- `SKILL.md`: Skill entrypoint with frontmatter, trigger rules, command cheatsheet, state overview
+- `agents/openai.yaml`: OpenAI-compatible agent manifest for /delivery invocation
+- `references/state-machine.md`: 10 states, full transition map, ASCII diagram, agent interpretation guide
+- `references/driver-matrix.md`: 4 drivers, auto-selection heuristics, model normalization rules
+- `references/dod-gates.md`: 7 Definition of Done gates, notification policy, failure recovery
+- `references/retry-policy.md`: Evidence-driven retry protocol, steering discipline, anti-patterns
+- `references/notification.md`: OpenClaw notification config, routing, progress updates, cron setup
 
 ## bin/
 
