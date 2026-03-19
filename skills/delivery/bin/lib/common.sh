@@ -92,6 +92,11 @@ quote() {
   printf '%q' "$1"
 }
 
+# sql_escape — double single quotes for safe SQL string interpolation
+sql_escape() {
+  printf '%s' "${1//\'/\'\'}"
+}
+
 # =============================================================================
 # Repo / path helpers
 # =============================================================================

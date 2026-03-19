@@ -58,8 +58,8 @@ create_worktree() {
   git -C "$repo" branch -D "$branch" 2>/dev/null || true
 
   # Create worktree — try origin/<base> first, fall back to local <base>
-  if ! git -C "$repo" worktree add -b "$branch" "$worktree_path" "origin/${base_branch}" 2>/dev/null; then
-    if ! git -C "$repo" worktree add -b "$branch" "$worktree_path" "$base_branch" 2>/dev/null; then
+  if ! git -C "$repo" worktree add -b "$branch" "$worktree_path" "origin/${base_branch}" >/dev/null 2>&1; then
+    if ! git -C "$repo" worktree add -b "$branch" "$worktree_path" "$base_branch" >/dev/null 2>&1; then
       die "Failed to create worktree at ${worktree_path}"
     fi
   fi
@@ -143,8 +143,8 @@ check_pr_status() {
 
   # Derive branch_mergeable same as Python logic
   local branch_mergeable="false"
-  if [[ "${mergeable^^}" == "MERGEABLE" ]] \
-    || [[ "${merge_state^^}" =~ ^(CLEAN|HAS_HOOKS|UNSTABLE)$ ]]; then
+  if [[ "$(printf "%s" "$mergeable" | tr "[:lower:]" "[:upper:]")" == "MERGEABLE" ]] \
+    || [[ "$(printf "%s" "$merge_state" | tr "[:lower:]" "[:upper:]")" =~ ^(CLEAN|HAS_HOOKS|UNSTABLE)$ ]]; then
     branch_mergeable="true"
   fi
 

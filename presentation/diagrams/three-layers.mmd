@@ -1,0 +1,18 @@
+flowchart TB
+    subgraph K["KNOWLEDGE LAYER"]
+        K1["CLAUDE.md"]
+        K2["Architecture Docs"]
+        K3["Design Decisions"]
+    end
+    subgraph S["SKILL LAYER"]
+        S1["/coding"]
+        S2["/delivery"]
+    end
+    subgraph C["CODING LAYER"]
+        C1["Codex"]
+        C2["Claude Code"]
+        C3["OpenCode"]
+        C4["Gemini CLI"]
+    end
+    K --> S
+    S --> C

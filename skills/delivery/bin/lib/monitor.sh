@@ -93,7 +93,7 @@ _review_gates() {
 
   local decision
   decision="$(printf '%s' "$json_out" | jq -r '.reviewDecision // "NONE"' 2>/dev/null)"
-  decision="${decision^^}"
+  decision="$(printf "%s" "$decision" | tr "[:lower:]" "[:upper:]")"
   local changes_requested=0
   [[ "$decision" == "CHANGES_REQUESTED" ]] && changes_requested=1
   local codex_passed=0 claude_passed=0 gemini_passed=0
@@ -168,7 +168,8 @@ _safe_transition() {
 # -- _ensure_pr_created — step running → pr_created if needed -----------------
 _ensure_pr_created() {
   local repo="${1:?}" task_id="${2:?}" current_ref="${3:?}"
-  local current="${!current_ref}"
+  local current=""
+  eval "current=\"\${${current_ref}}\""
   if [[ "$current" == "$STATUS_RUNNING" ]]; then
     _safe_transition "$repo" "$task_id" "$STATUS_RUNNING" "$STATUS_PR_CREATED" "PR detected"
     eval "${current_ref}='${STATUS_PR_CREATED}'"
@@ -250,8 +251,8 @@ _monitor_one() {
 
   local mergeable_raw="" merge_state="" branch_mergeable=0
   if command -v jq >/dev/null 2>&1; then
-    mergeable_raw="$(printf '%s' "$details_json" | jq -r '.mergeable // "UNKNOWN"' 2>/dev/null)"; mergeable_raw="${mergeable_raw^^}"
-    merge_state="$(printf '%s' "$details_json" | jq -r '.mergeStateStatus // ""' 2>/dev/null)"; merge_state="${merge_state^^}"
+    mergeable_raw="$(printf '%s' "$details_json" | jq -r '.mergeable // "UNKNOWN"' 2>/dev/null)"; mergeable_raw="$(printf "%s" "$mergeable_raw" | tr "[:lower:]" "[:upper:]")"
+    merge_state="$(printf '%s' "$details_json" | jq -r '.mergeStateStatus // ""' 2>/dev/null)"; merge_state="$(printf "%s" "$merge_state" | tr "[:lower:]" "[:upper:]")"
     [[ "$mergeable_raw" == "MERGEABLE" || "$merge_state" =~ ^(CLEAN|HAS_HOOKS|UNSTABLE)$ ]] && branch_mergeable=1
   fi
 
@@ -367,8 +368,9 @@ Focus only on files relevant to this failure and complete DoD."
 
   local full_prompt; full_prompt="$(build_prompt "$retry_prompt" "$task_id" "$branch" "$base_branch")"
   local norm_model; norm_model="$(normalize_model "$driver" "$model")"
-  local rv="CONF_DRIVER_${driver^^}_REASONING"; rv="$(printf '%s' "$rv" | tr '-' '_')"
-  local reasoning="${!rv:-high}"
+  local rv="CONF_DRIVER_$(printf "%s" "$driver" | tr "[:lower:]-" "[:upper:]_")_REASONING"; rv="$(printf '%s' "$rv" | tr '-' '_')"
+  local reasoning=""
+  eval "reasoning=\"\${${rv}:-high}\""
   local driver_cmd; driver_cmd="$(build_driver_command "$driver" "$full_prompt" "$norm_model" "$reasoning")"
   local wrapped_cmd; wrapped_cmd="bash -lc $(printf '%q' "$driver_cmd")"
 

@@ -189,7 +189,8 @@ resolve_spawn_notify_route() {
     # Check env vars
     local var
     for var in OPENCLAW_SESSION_KEY OPENCLAW_SESSIONKEY SESSION_KEY OPENCLAW_CONTEXT_SESSION_KEY; do
-      local val="${!var:-}"
+      local val=""
+      eval "val=\"\${${var}:-}\""
       if [[ -n "$val" ]]; then
         session_key="$val"
         break
@@ -390,15 +391,16 @@ cmd_spawn() {
   driver="$(resolve_driver "$driver_req" "$raw_prompt")"
 
   # -- Derive model and reasoning from config --
-  local conf_model_var="CONF_DRIVER_${driver^^}_MODEL"
-  # Normalize driver name for var lookup: gemini-cli → GEMINI_CLI
-  conf_model_var="$(printf '%s' "$conf_model_var" | tr '-' '_')"
-  local model="${!conf_model_var:-}"
+  local driver_upper
+  driver_upper="$(printf '%s' "$driver" | tr '[:lower:]-' '[:upper:]_')"
+  local conf_model_var="CONF_DRIVER_${driver_upper}_MODEL"
+  local model
+  eval "model=\"\${${conf_model_var}:-}\""
   model="$(normalize_model "$driver" "$model")"
 
-  local conf_reasoning_var="CONF_DRIVER_${driver^^}_REASONING"
-  conf_reasoning_var="$(printf '%s' "$conf_reasoning_var" | tr '-' '_')"
-  local reasoning="${!conf_reasoning_var:-high}"
+  local conf_reasoning_var="CONF_DRIVER_${driver_upper}_REASONING"
+  local reasoning
+  eval "reasoning=\"\${${conf_reasoning_var}:-high}\""
 
   # -- Compute paths --
   local base_branch
@@ -471,11 +473,16 @@ cmd_spawn() {
     attempts=$(( prev_attempts + 1 ))
   fi
 
-  # Escape single quotes in prompt for SQL
-  local safe_prompt safe_desc safe_title
-  safe_prompt="$(printf '%s' "$raw_prompt" | sed "s/'/''/g")"
-  safe_desc="$(printf '%s' "$description" | sed "s/'/''/g")"
-  safe_title="$(printf '%s' "$title" | sed "s/'/''/g")"
+  # Escape all string values for safe SQL interpolation
+  local safe_prompt safe_desc safe_title safe_repo safe_branch safe_worktree safe_session safe_log
+  safe_prompt="$(sql_escape "$raw_prompt")"
+  safe_desc="$(sql_escape "$description")"
+  safe_title="$(sql_escape "$title")"
+  safe_repo="$(sql_escape "$repo")"
+  safe_branch="$(sql_escape "$branch")"
+  safe_worktree="$(sql_escape "$worktree_path")"
+  safe_session="$(sql_escape "$session")"
+  safe_log="$(sql_escape "$log_file")"
 
   sqlite3 "$db" <<SQL
 BEGIN TRANSACTION;
@@ -492,9 +499,9 @@ INSERT INTO tasks(
   created_at, started_at, completed_at, updated_at
 ) VALUES(
   '${task_id}', '${safe_title}', '${safe_desc}', '${STATUS_RUNNING}', 'medium',
-  '${driver}', '${model}', '${repo}', '${base_branch}',
-  '${branch}', '${worktree_path}', '${session}',
-  '${log_file}', '${safe_prompt}',
+  '${driver}', '${model}', '${safe_repo}', '${base_branch}',
+  '${safe_branch}', '${safe_worktree}', '${safe_session}',
+  '${safe_log}', '${safe_prompt}',
   ${attempts}, ${CONF_MAX_ATTEMPTS:-3},
   $([ "${CONF_NOTIFY_ON_READY:-true}" = "true" ] && echo 1 || echo 0),
   '${r_channel}', '${r_target}', '${r_account}', '${r_session}',

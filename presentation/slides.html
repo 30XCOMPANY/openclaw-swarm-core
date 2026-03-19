@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920">
+<title>30X Swarm System — OpenClaw Edition</title>
+<style>
+  @font-face { font-family: 'Geist'; src: local('Geist'); font-weight: 100 900; }
+  @font-face { font-family: 'Geist Mono'; src: local('Geist Mono'); font-weight: 100 900; }
+  @font-face { font-family: 'Geist Pixel Square'; src: local('Geist Pixel Square'); }
+  @font-face { font-family: 'Geist Pixel Grid'; src: local('Geist Pixel Grid'); }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --fg: #000; --bg: #FFF;
+    --accent: #D4FF00;
+    --muted: rgba(0,0,0,0.45);
+    --subtle: rgba(0,0,0,0.15);
+    --border: rgba(0,0,0,0.08);
+    --px: 160px; --py: 120px;
+  }
+
+  html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+  body { background: #D8D8D8; font-family: 'Geist', system-ui; font-weight: 400; color: var(--fg); }
+
+  /* === SLIDE === */
+  .s { width: 1920px; height: 1080px; background: var(--bg); position: relative; overflow: hidden; margin: 40px auto; display: flex; flex-direction: column; padding: var(--py) var(--px); }
+  .s-dark { background: #000; color: #FFF; }
+  .s-dark .muted { color: rgba(255,255,255,0.45); }
+  .s-dark .subtle { color: rgba(255,255,255,0.15); }
+  .s-dark .tag { border-color: var(--accent); color: var(--accent); }
+
+  .foot { position: absolute; bottom: 40px; left: var(--px); right: var(--px); display: flex; justify-content: space-between; font-family: 'Geist Mono', monospace; font-size: 16px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--subtle); }
+  .s-dark .foot { color: rgba(255,255,255,0.15); }
+
+  /* === TYPE — PRESENTATION SCALE === */
+  .d1 { font-family: 'Geist'; font-weight: 400; font-size: 160px; line-height: 0.95; letter-spacing: -0.04em; }
+  .d2 { font-family: 'Geist'; font-weight: 400; font-size: 100px; line-height: 1; letter-spacing: -0.04em; }
+  .d3 { font-family: 'Geist'; font-weight: 400; font-size: 72px; line-height: 1.05; letter-spacing: -0.03em; }
+  .h1 { font-family: 'Geist'; font-weight: 500; font-size: 52px; line-height: 1.15; letter-spacing: -0.02em; }
+  .h2 { font-family: 'Geist'; font-weight: 500; font-size: 40px; line-height: 1.2; letter-spacing: -0.01em; }
+  .b1 { font-family: 'Geist'; font-weight: 400; font-size: 36px; line-height: 1.5; }
+  .b2 { font-family: 'Geist'; font-weight: 400; font-size: 28px; line-height: 1.5; }
+  .mono { font-family: 'Geist Mono', monospace; font-weight: 400; font-variant-numeric: tabular-nums; }
+  .pixel { font-family: 'Geist Pixel Square', monospace; }
+  .muted { color: var(--muted); }
+  .subtle { color: var(--subtle); }
+
+  /* === LAYOUT === */
+  .cc { display: flex; flex-direction: column; justify-content: center; align-items: center; flex: 1; }
+  .cl { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; flex: 1; }
+  .row { display: flex; flex-direction: row; }
+  .col { display: flex; flex-direction: column; }
+
+  /* === COMPONENTS === */
+  .tag { font-family: 'Geist Mono', monospace; font-size: 18px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); padding-bottom: 8px; border-bottom: 2px solid var(--fg); align-self: flex-start; }
+  .hl { background: var(--accent); padding: 2px 10px; color: #000; }
+  .divider { width: 100%; height: 1px; background: var(--border); }
+  .s-dark .divider { background: rgba(255,255,255,0.08); }
+
+  .pill { display: inline-block; font-family: 'Geist Mono', monospace; font-size: 20px; letter-spacing: 0.06em; text-transform: uppercase; background: var(--accent); color: #000; padding: 10px 20px; }
+
+  .code { font-family: 'Geist Mono', monospace; font-size: 28px; line-height: 1.8; color: var(--fg); background: rgba(0,0,0,0.03); padding: 40px 48px; border: 1px solid var(--border); white-space: pre; align-self: stretch; }
+  .s-dark .code { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); color: #FFF; }
+
+  .pixel-bar { font-family: 'Geist Pixel Grid', monospace; font-size: 24px; letter-spacing: 0.3em; color: var(--subtle); overflow: hidden; white-space: nowrap; position: absolute; left: 0; right: 0; text-align: center; padding: 8px 0; }
+  .s-dark .pixel-bar { color: rgba(255,255,255,0.06); }
+
+  .three-col { display: flex; flex-direction: row; gap: 2px; background: var(--border); flex: 1; align-self: stretch; }
+  .three-col > div { flex: 1; background: var(--bg); padding: 48px 44px; display: flex; flex-direction: column; gap: 24px; }
+  .s-dark .three-col { background: rgba(255,255,255,0.06); }
+  .s-dark .three-col > div { background: #000; }
+
+  .speaker-notes { display: none; }
+
+  @media print {
+    body { background: white; }
+    .s { margin: 0; break-after: page; }
+    @page { size: 20in 11.25in; margin: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     01 — TITLE (dark)
+     ============================================================ -->
+<div class="s s-dark">
+  <div class="pixel-bar" style="top: 0;">&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;</div>
+  <div class="cc" style="gap: 40px;">
+    <p class="pixel" style="font-size: 24px; letter-spacing: 0.3em; color: var(--accent);">30X SWARM SYSTEM</p>
+    <p class="d1" style="text-align: center;">OpenClaw</p>
+    <p class="b1 muted" style="text-align: center;">
+      From fun demos to<br>production delivery machines.
+    </p>
+  </div>
+  <div class="pixel-bar" style="bottom: 70px;">&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;</div>
+  <div class="foot"><span>OpenClaw Edition</span><span>01 / 14</span></div>
+</div>
+
+
+<!-- ============================================================
+     02 — THE LOVE (white)
+     ============================================================ -->
+<div class="s">
+  <div class="cc" style="gap: 48px;">
+    <p class="d2" style="text-align: center;">We all love<br>coding agents.</p>
+    <p class="b1 muted" style="text-align: center; max-width: 900px;">
+      Claude Code. Codex. Gemini CLI.<br>
+      They write code, fix bugs, feel like magic.
+    </p>
+  </div>
+  <div class="foot"><span>30X Swarm</span><span>02 / 14</span></div>
+</div>
+
+
+<!-- ============================================================
+     03 — PAIN BUILD 1 (white)
+     ============================================================ -->
+<div class="s">
+  <div class="cl" style="gap: 56px; max-width: 1200px;">
+    <div class="tag">The problem</div>
+    <p class="d3">But they don't ship.</p>
+    <div class="col" style="gap: 36px;">
+      <div class="row" style="gap: 24px; align-items: flex-start;">
+        <p class="mono" style="font-size: 28px; color: var(--subtle); min-width: 40px;">&#x2715;</p>
+        <p class="b1 muted">Context resets every conversation.</p>
+      </div>
+      <div class="row" style="gap: 24px; align-items: flex-start;">
+        <p class="mono" style="font-size: 28px; color: var(--subtle); min-width: 40px;">&#x2715;</p>
+        <p class="b1 muted">You babysit every single step.</p>
+      </div>
+      <div class="row" style="gap: 24px; align-items: flex-start;">
+        <p class="mono" style="font-size: 28px; color: var(--subtle); min-width: 40px;">&#x2715;</p>
+        <p class="b1 muted">No PR workflow. No CI. No retries.</p>
+      </div>
+      <div class="row" style="gap: 24px; align-items: flex-start;">
+        <p class="mono" style="font-size: 28px; color: var(--subtle); min-width: 40px;">&#x2715;</p>
+        <p class="b1 muted">12 client requests = 12 manual sessions.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>30X Swarm</span><span>03 / 14</span></div>
+</div>
+
+
+<!-- ============================================================
+     04 — WHAT IF (dark, dramatic)
+     ============================================================ -->
+<div class="s s-dark">
+  <div class="cc" style="gap: 48px;">
+    <p class="d3" style="text-align: center;">
+      What if you left at <span class="hl">6 PM</span>
+    </p>
+    <p class="d3" style="text-align: center;">
+      and woke up to
+    </p>
+    <p class="d2" style="text-align: center;">
+      <span class="hl">12 merge-ready PRs</span>?
+    </p>
+  </div>
+  <div class="foot"><span>30X Swarm</span><span>04 / 14</span></div>
+</div>
+
+
+<!-- ============================================================
+     05 — PROOF: REAL WORKFLOW (white, with screenshot)
+     ============================================================ -->
+<div class="s">
+  <div class="row" style="gap: 80px; flex: 1; align-items: stretch;">
+    <div class="col" style="flex: 1; justify-content: center; gap: 48px;">
+      <div class="tag">Real workflow</div>
+      <p class="d3">This actually<br>happened.</p>
+      <div class="col" style="gap: 28px;">
+        <div class="row" style="gap: 20px; align-items: baseline;">
+          <p class="mono" style="font-size: 24px; color: var(--accent); background: #000; padding: 4px 12px;">12:12</p>
+          <p class="b2 muted">Client sends request in Discord</p>
+        </div>
+        <div class="row" style="gap: 20px; align-items: baseline;">
+          <p class="mono" style="font-size: 24px; color: var(--accent); background: #000; padding: 4px 12px;">12:12</p>
+          <p class="b2 muted">OpenClaw files the issue</p>
+        </div>
+        <div class="row" style="gap: 20px; align-items: baseline;">
+          <p class="mono" style="font-size: 24px; color: var(--accent); background: #000; padding: 4px 12px;">23:50</p>
+          <p class="b2">Both issues closed. PRs merged.</p>
+        </div>
+      </div>
+      <p class="b1" style="margin-top: 16px;">I was asleep.</p>
+    </div>
+    <div style="flex: 0.8; display: flex; align-items: center; justify-content: center; background: #111; padding: 32px;">
+      <img src="images/discord-workflow.png" alt="Discord workflow proof"
+           style="max-height: 100%; max-width: 100%; object-fit: contain;"
+           onerror="this.parentElement.innerHTML='<p style=\'color:rgba(255,255,255,0.25);font-family:Geist Mono,monospace;font-size:20px;text-align:center;padding:40px;\'>Drop discord-workflow.png<br>into images/ folder</p>';">
+    </div>
+  </div>
+  <div class="foot"><span>30X Swarm</span><span>05 / 14</span></div>
+</div>
+
+
+<!-- ============================================================
+     06 — THE INSIGHT (white, big statement)
+     ============================================================ -->
+<div class="s">
+  <div class="cc" style="gap: 56px;">
+    <p class="pixel" style="font-size: 22px; letter-spacing: 0.25em; color: var(--muted);">THE INSIGHT</p>
+    <p class="d2" style="text-align: center;">
+      OpenClaw understands<br>what you want.
+    </p>
+    <p class="d3 muted" style="text-align: center;">
+      It doesn't know how<br>to write code.
+    </p>
+  </div>
+  <div class="foot"><span>30X Swarm</span><span>06 / 14</span></div>
+</div>
+
+
+<!-- ============================================================
+     07 — INSIGHT BUILD 2: general vs coding (white)
+     ============================================================ -->
+<div class="s">
+  <div class="cc" style="gap: 64px;">
+    <div class="row" style="gap: 120px; align-items: flex-start;">
+      <div class="col" style="align-items: center; gap: 24px;">
+        <p style="font-size: 80px;">&#x1F5E3;&#xFE0F;</p>
+        <p class="h1" style="text-align: center;">General Agent</p>
+        <p class="b2 muted" style="text-align: center; max-width: 320px;">
+          Conversations<br>Context<br>Intent
+        </p>
+      </div>
+      <div style="display: flex; align-items: center; padding-top: 24px;">
+        <p class="d3 subtle">&#x2260;</p>
+      </div>
+      <div class="col" style="align-items: center; gap: 24px;">
+        <p style="font-size: 80px;">&#x2328;&#xFE0F;</p>
+        <p class="h1" style="text-align: center;">Coding Agent</p>
+        <p class="b2 muted" style="text-align: center; max-width: 320px;">
+          File edits<br>Tests<br>Pull requests
+        </p>
+      </div>
+    </div>
+    <p class="b1 muted" style="text-align: center;">
+      It needs an orchestration layer in between.
+    </p>
+  </div>
+  <div class="foot"><span>30X Swarm</span><span>07 / 14</span></div>
+</div>
+
+
+<!-- ============================================================
+     08 — THREE LAYERS INTRO (dark)
+     ============================================================ -->
+<div class="s s-dark">
+  <div class="cc" style="gap: 48px;">
+    <div class="pill">Architecture</div>
+    <p class="d2" style="text-align: center;">Three Layers</p>
+    <p class="b1 muted" style="text-align: center;">
+      Knowledge &middot; Skill &middot; Coding
+    </p>
+  </div>
+  <div class="foot"><span>30X Swarm</span><span>08 / 14</span></div>
+</div>
+
+
+<!-- ============================================================
+     09 — THREE LAYERS DETAIL (white, with diagram)
+     ============================================================ -->
+<div class="s">
+  <div class="row" style="flex: 1; gap: 80px; align-items: stretch;">
+    <div style="flex: 1; display: flex; align-items: center; justify-content: center;">
+      <img src="images/three-layers.svg" alt="Three layers architecture" style="max-height: 90%; max-width: 100%; object-fit: contain;">
+    </div>
+    <div class="col" style="flex: 1; justify-content: center; gap: 48px;">
+      <div class="col" style="gap: 16px;">
+        <p class="pixel" style="font-size: 20px; letter-spacing: 0.2em; color: var(--accent); background: #000; padding: 6px 14px; align-self: flex-start;">01</p>
+        <p class="h1">Knowledge</p>
+        <p class="b2 muted">What the agent knows. CLAUDE.md, architecture docs, design decisions.</p>
+      </div>
+      <div class="divider"></div>
+      <div class="col" style="gap: 16px;">
+        <p class="pixel" style="font-size: 20px; letter-spacing: 0.2em; color: var(--accent); background: #000; padding: 6px 14px; align-self: flex-start;">02</p>
+        <p class="h1">Skill</p>
+        <p class="b2 muted">How the agent works. /coding and /delivery — reusable workflows with scripts.</p>
+      </div>
+      <div class="divider"></div>
+      <div class="col" style="gap: 16px;">
+        <p class="pixel" style="font-size: 20px; letter-spacing: 0.2em; color: var(--accent); background: #000; padding: 6px 14px; align-self: flex-start;">03</p>
+        <p class="h1">Coding</p>
+        <p class="b2 muted">What does the work. Codex, Claude Code, OpenCode, Gemini CLI.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>30X Swarm</span><span>09 / 14</span></div>
+</div>
+
+
+<!-- ============================================================
+     10 — 30X SWARM SYSTEM INTRO (dark)
+     ============================================================ -->
+<div class="s s-dark">
+  <div class="cc" style="gap: 48px;">
+    <div class="pill">The Engine</div>
+    <p class="d2" style="text-align: center;">30X Swarm System</p>
+    <p class="b1 muted" style="text-align: center; max-width: 900px;">
+      Skill-driven orchestration that lets OpenClaw<br>
+      autonomously drive your local coding harnesses.
+    </p>
+  </div>
+  <div class="foot"><span>30X Swarm</span><span>10 / 14</span></div>
+</div>
+
+
+<!-- ============================================================
+     11 — SWARM SPECS (dark, with topology diagram)
+     ============================================================ -->
+<div class="s s-dark">
+  <div class="row" style="flex: 1; gap: 80px; align-items: stretch;">
+    <div class="col" style="flex: 1; justify-content: center; gap: 40px;">
+      <div class="row" style="gap: 40px;">
+        <div class="col" style="gap: 12px; flex: 1;">
+          <p class="mono" style="font-size: 16px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.25);">&#x2699;&#xFE0F; Drivers</p>
+          <p class="b2" style="color: #FFF;">Codex &middot; Claude Code<br>OpenCode &middot; Gemini CLI</p>
+        </div>
+        <div class="col" style="gap: 12px; flex: 1;">
+          <p class="mono" style="font-size: 16px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.25);">&#x1F4BE; State</p>
+          <p class="b2" style="color: #FFF;">SQLite per repo<br>Single source of truth</p>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="row" style="gap: 40px;">
+        <div class="col" style="gap: 12px; flex: 1;">
+          <p class="mono" style="font-size: 16px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.25);">&#x1F512; Isolation</p>
+          <p class="b2" style="color: #FFF;">Git worktree + tmux<br>per task attempt</p>
+        </div>
+        <div class="col" style="gap: 12px; flex: 1;">
+          <p class="mono" style="font-size: 16px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.25);">&#x1F504; Recovery</p>
+          <p class="b2" style="color: #FFF;">Evidence-driven retry<br>Failure logs injected</p>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="row" style="gap: 40px;">
+        <div class="col" style="gap: 12px; flex: 1;">
+          <p class="mono" style="font-size: 16px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.25);">&#x1F6E0;&#xFE0F; Runtime</p>
+          <p class="b2" style="color: #FFF;">Pure shell<br>bash + sqlite3 + git + tmux</p>
+        </div>
+        <div class="col" style="gap: 12px; flex: 1;">
+          <p class="mono" style="font-size: 16px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.25);">&#x1F4AC; Surface</p>
+          <p class="b2"><span style="color: var(--accent);">/coding</span> &middot; <span style="color: var(--accent);">/delivery</span></p>
+        </div>
+      </div>
+    </div>
+    <div style="flex: 0.9; display: flex; align-items: center; justify-content: center;">
+      <img src="images/runtime-topology-dark.svg" alt="Runtime topology" style="max-height: 85%; max-width: 100%; object-fit: contain;">
+    </div>
+  </div>
+  <div class="foot"><span>30X Swarm</span><span>11 / 14</span></div>
+</div>
+
+
+<!-- ============================================================
+     12 — STATE MACHINE (white, with diagram)
+     ============================================================ -->
+<div class="s">
+  <div class="col" style="flex: 1; gap: 48px; justify-content: center;">
+    <div class="row" style="justify-content: space-between; align-items: flex-end;">
+      <div class="col" style="gap: 12px;">
+        <div class="tag">Delivery Chain</div>
+        <p class="d3" style="margin-top: 8px;">Every task converges<br>toward merge.</p>
+      </div>
+      <p class="pixel" style="font-size: 20px; letter-spacing: 0.2em; color: var(--subtle);">10 STATES</p>
+    </div>
+    <div style="flex: 1; display: flex; align-items: center; justify-content: center; max-height: 500px;">
+      <img src="images/state-machine.svg" alt="Delivery state machine" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+    </div>
+  </div>
+  <div class="foot"><span>30X Swarm</span><span>12 / 14</span></div>
+</div>
+
+
+<!-- ============================================================
+     13 — 1X vs 30X (white, hero numbers)
+     ============================================================ -->
+<div class="s">
+  <div class="cc" style="gap: 48px;">
+    <div class="row" style="gap: 80px; align-items: flex-end;">
+      <div class="col" style="align-items: center; gap: 20px;">
+        <p class="d1 subtle" style="font-size: 240px;">1x</p>
+        <p class="mono muted" style="font-size: 20px; letter-spacing: 0.1em; text-transform: uppercase;">Manual</p>
+      </div>
+      <div style="padding-bottom: 60px;">
+        <p class="mono subtle" style="font-size: 56px;">&#x2192;</p>
+      </div>
+      <div class="col" style="align-items: center; gap: 20px;">
+        <p class="d1" style="font-size: 240px;"><span class="hl">30x</span></p>
+        <p class="mono" style="font-size: 20px; letter-spacing: 0.1em; text-transform: uppercase;">Swarm</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>30X Swarm</span><span>13 / 14</span></div>
+</div>
+
+
+<!-- ============================================================
+     14 — CTA (dark)
+     ============================================================ -->
+<div class="s s-dark">
+  <div class="pixel-bar" style="top: 0;">&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;</div>
+  <div class="cc" style="gap: 56px;">
+    <p class="pixel" style="font-size: 22px; letter-spacing: 0.3em; color: var(--accent);">GET STARTED</p>
+    <p class="d2" style="text-align: center;">Try it tonight.</p>
+    <div class="code" style="max-width: 800px;">git clone https://github.com/30XCOMPANY/openclaw-swarm-core.git
+cd openclaw-swarm-core
+./install.sh --yes --link-bin</div>
+    <div class="row" style="gap: 64px;">
+      <div class="col" style="align-items: center; gap: 12px;">
+        <p class="mono" style="font-size: 32px; color: var(--accent);">/coding</p>
+        <p class="b2 muted">Direct execution</p>
+      </div>
+      <div class="col" style="align-items: center; gap: 12px;">
+        <p class="mono" style="font-size: 32px; color: var(--accent);">/delivery</p>
+        <p class="b2 muted">Tracked PR pipeline</p>
+      </div>
+    </div>
+  </div>
+  <div class="pixel-bar" style="bottom: 70px;">&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;</div>
+  <div class="foot"><span>30X Swarm</span><span>14 / 14</span></div>
+</div>
+
+</body>
+</html>
