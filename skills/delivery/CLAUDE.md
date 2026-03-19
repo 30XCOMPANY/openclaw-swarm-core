@@ -11,5 +11,6 @@ Shell-based delivery CLI — deterministic task orchestration (spawn/monitor/kil
 ## bin/lib/
 
 - `common.sh`: State constants, config loader, SQLite helpers, repo utilities
+- `drivers.sh`: Driver selection, command building, model normalization (4 functions)
 
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
