@@ -4,6 +4,8 @@ Reusable OpenClaw package where skills are the public product surface and `swarm
 
 <directory>
 skills/ - Public entry layer with fixed slash surfaces (`/coding`, `/delivery`, `/swarm`)
+  skills/delivery/ - Shell-based delivery CLI (spawn/monitor/kill/cleanup) with SQLite state
+  skills/coding/ - Coding skill (placeholder)
 swarm-core/ - Internal runtime core (CLI/state machine/drivers/templates)
 reference/ - Maintainer docs for system definition, architecture, and constitution
 .archive/ - Historical material and superseded operational docs

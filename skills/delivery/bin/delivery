@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# =============================================================================
+# delivery — Main entrypoint for the delivery CLI
+# =============================================================================
+# [INPUT]:  CLI args, subcommand modules in lib/
+# [OUTPUT]: Dispatches to spawn/status/redirect/monitor/kill/cleanup/init
+# [POS]:   Top-level executable; the only user-facing binary for delivery skill
+# [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+# =============================================================================
+set -euo pipefail
+
+RUNTIME_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null \
+  || echo "${BASH_SOURCE[0]}")")" && pwd)"
+export RUNTIME_DIR
+
+source "$RUNTIME_DIR/lib/common.sh"
+
+# -- Usage -------------------------------------------------------------------
+
+usage() {
+  cat <<'EOF'
+Usage: delivery <command> [options]
+
+Commands:
+  spawn      Create and launch a delivery task
+  status     Show task status
+  redirect   Send correction to a running task
+  monitor    Run deterministic inspection and retry loop
+  kill       Terminate a task
+  cleanup    Clean up terminated task artifacts
+  init       Initialize delivery database for a repo
+
+Run 'delivery <command> --help' for command-specific options.
+EOF
+}
+
+# -- Dispatch ----------------------------------------------------------------
+
+case "${1:-}" in
+  spawn)    shift; source "$RUNTIME_DIR/lib/state.sh";    cmd_spawn "$@" ;;
+  status)   shift; source "$RUNTIME_DIR/lib/state.sh";    cmd_status "$@" ;;
+  redirect) shift; source "$RUNTIME_DIR/lib/state.sh";    cmd_redirect "$@" ;;
+  monitor)  shift; source "$RUNTIME_DIR/lib/monitor.sh";  cmd_monitor "$@" ;;
+  kill)     shift; source "$RUNTIME_DIR/lib/state.sh";    cmd_kill "$@" ;;
+  cleanup)  shift; source "$RUNTIME_DIR/lib/git-ops.sh";  cmd_cleanup "$@" ;;
+  init)     shift; source "$RUNTIME_DIR/lib/state.sh";    cmd_init "$@" ;;
+  -h|--help) usage ;;
+  *)        usage; exit 1 ;;
+esac
