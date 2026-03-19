@@ -1,264 +1,142 @@
-# 30X Swarm Architecture - Elvis's OpenClaw Setup
+<!--
+[INPUT]: 依赖 OpenClaw 原生能力验证结果，依赖 swarm-core 当前实现与使用约定
+[OUTPUT]: 对外提供 30X Swarm x OpenClaw 协同架构说明与链路分层
+[POS]: reference 的架构说明文档，连接 north-star、constitution 与 usage
+[PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+-->
 
-Source: https://x.com/elvissun/status/2025920521871716562
-Date: 2026-02-23
-Author: Elvis (@elvissun)
+# 30X Swarm Architecture
 
-## 核心理念
+Status: Current  
+Scope: OpenClaw-native conversational delivery
 
-**两层架构**：
-- **编排层（OpenClaw）**：持有业务上下文（客户数据、会议笔记、历史决策、成功/失败案例）
-- **执行层（Coding Agents）**：专注代码实现，不需要业务上下文
+## 1. Core Framing
 
-**为什么分层**：
-- Context window 是零和游戏
-- 填满代码 → 没空间放业务上下文
-- 填满业务上下文 → 没空间放代码库
-- 通过上下文专业化，而非不同模型
+当前系统不是“OpenClaw 外挂一个 swarm 脚本”，而是一个两层协同系统：
 
-## 数据指标
+- **OpenClaw 原生会话层**：远程入口、持续对话、会话历史、steering、状态追问、子会话派生
+- **30X Swarm 交付内核**：任务状态机、driver 调度、PR/CI/review gate、重试、清理
 
-- **生产力**：94 commits/天（最高），平均 50 commits/天
-- **速度**：7 PRs/30分钟，idea to production 极快
-- **成本**：Claude $100/月 + Codex $90/月（可以 $20 起步）
-- **成功率**：小到中等任务几乎都能一次成功，无需人工干预
-- **瓶颈**：RAM（16GB Mac Mini 最多 4-5 agents，买了 128GB Mac Studio）
+它们之间的关系不是替代，而是分工：
 
-## 完整工作流（8步）
+- OpenClaw 负责理解和持续承接人类意图
+- swarm 负责让交付过程在机器侧可控、可监控、可恢复
 
-### Step 1: 客户需求 → Scoping
-- 会议笔记自动同步到 Obsidian vault
-- 与 Zoe（编排 agent）讨论需求，零解释成本
-- Zoe 做三件事：
-  1. Top up credits（有 admin API access）
-  2. 从 prod DB 拉客户配置（只读权限，coding agents 永远不给）
-  3. Spawn Codex agent（带详细 prompt + 所有上下文）
+## 2. Why This Split Exists
 
-### Step 2: Spawn Agent
-- 每个 agent 独立 worktree（隔离分支）+ tmux session
-- 用 tmux 而非 `codex exec` 或 `claude -p`
-- **tmux 优势**：可以中途重定向 agent
-  - Agent 走错方向？不要 kill，直接发新指令
-  - `tmux send-keys -t <session> "Stop. Focus on X first." Enter`
+如果把业务意图、多轮澄清、历史记忆、远程消息和代码执行塞进同一个执行器，会同时出现两种退化：
 
-```bash
-# 创建 worktree + spawn agent
-git worktree add ../feat-custom-templates -b feat/custom-templates origin/main
-cd ../feat-custom-templates && pnpm install
+- 对话系统缺少确定性交付约束，容易停在“回答得像完成了”
+- 代码执行器缺少会话连续性，容易把每次补充要求当成新任务
 
-tmux new-session -d -s "codex-templates" \
-  -c "/path/to/worktree" \
-  "$HOME/.codex-agent/run-agent.sh templates gpt-5.3-codex high"
+分层之后：
+
+- OpenClaw 保存对话连续性与业务语义
+- swarm 保存交付确定性与机器可验证状态
+- coding harness 只负责高质量执行，不背负业务控制面
+
+## 3. Native OpenClaw Abilities The Architecture Depends On
+
+当前架构明确建立在这些已验证的 OpenClaw 原生能力上：
+
+- `agent` / `agents`
+- `sessions` / `sessions_history` / `sessions_send` / `sessions_yield`
+- `session_status`
+- `sessions_spawn`
+- `subagents`
+- `message`
+- `acp`
+- agent runtime tools: `read/edit/write/exec/process`
+
+因此系统并不需要伪造一个“未来有会话能力”的 OpenClaw；地基今天就存在。
+
+## 4. Runtime Topology
+
+```mermaid
+flowchart LR
+    HUMAN["Remote Human"]
+    CH["Discord / Telegram / Direct"]
+    OC["OpenClaw Native Session Layer"]
+    SS["Session / History / Steering"]
+    DEL["Delegation Boundary"]
+    SW["30X Swarm Delivery Kernel"]
+    DR["Driver Layer"]
+    HAR["Coding Harness"]
+    GH["GitHub PR / CI / Review"]
+    ST["SQLite Task State"]
+
+    HUMAN --> CH
+    CH --> OC
+    OC --> SS
+    SS --> DEL
+    DEL --> SW
+    SW --> DR
+    DR --> HAR
+    HAR --> GH
+    SW --> ST
+    GH --> SW
+    ST --> OC
 ```
 
-- 任务追踪：`.clawdbot/active-tasks.json`
+## 5. Conversational Delivery Chain
 
-```json
-{
-  "id": "feat-custom-templates",
-  "tmuxSession": "codex-templates",
-  "agent": "codex",
-  "description": "Custom email templates for agency customer",
-  "repo": "medialyst",
-  "worktree": "feat-custom-templates",
-  "branch": "feat/custom-templates",
-  "startedAt": 1740268800000,
-  "status": "running",
-  "notifyOnComplete": true
-}
-```
+标准链路不是 `spawn -> PR`，而是：
 
-### Step 3: 监控循环（改进版 Ralph Loop）
-- Cron 每 10 分钟检查所有 agents
-- **不直接 poll agents**（太贵），而是读 JSON registry 检查：
-  - tmux sessions 是否 alive
-  - 是否有 open PRs
-  - CI 状态（via `gh cli`）
-  - 自动 respawn 失败的 agents（最多 3 次）
-- 100% 确定性，极省 token
-- 只在需要人工注意时才 alert
+`conversation -> clarify -> delegate -> execute -> monitor -> steer/retry -> ready_to_merge -> merge`
 
-**关键区别**：
-- 传统 Ralph Loop：每次用同样的 prompt
-- 这个系统：Zoe 看失败原因 + 业务上下文，写更好的 prompt
-  - Agent 超出 context？"只关注这三个文件"
-  - Agent 走错方向？"客户要的是 X，不是 Y。这是会议记录"
-  - Agent 需要澄清？"这是客户邮件和他们公司做什么"
+这里的关键点有三个：
 
-### Step 4: Agent 创建 PR
-- Agent commit、push、开 PR：`gh pr create --fill`
-- **此时不通知人类** — PR 本身不算完成
+1. **Conversation is primary**
+- 用户看到的是 OpenClaw 会话，不是 `tmux`
 
-**Definition of Done**（agent 必须知道）：
-- PR created
-- Branch synced to main（无冲突）
-- CI passing（lint/types/unit tests/E2E）
-- Codex review passed
-- Claude Code review passed
-- Gemini review passed
-- Screenshots included（如果有 UI 改动）
+2. **Delegation is explicit**
+- OpenClaw 将意图委托给 swarm，而不是把 swarm 暴露成用户产品面
 
-### Step 5: 自动 Code Review（3 个 AI）
-- **Codex Reviewer**：最彻底，擅长边界情况、逻辑错误、错误处理、竞态条件。误报率低
-- **Gemini Code Assist Reviewer**：免费且超有用。抓安全问题、可扩展性问题。给具体修复建议
-- **Claude Code Reviewer**：基本没用 — 过度谨慎，很多"consider adding..."建议都是过度工程。只看标记为 critical 的
+3. **Delivery is artifact-backed**
+- 交付完成的标志是 PR/gates/state，不是 agent 说“我做完了”
 
-所有三个都直接在 PR 上评论
+## 6. Responsibility Split
 
-### Step 6: 自动测试
-CI pipeline：
-- Lint + TypeScript checks
-- Unit tests
-- E2E tests
-- Playwright tests（preview 环境，与 prod 一致）
+### OpenClaw
+- 接收远程需求
+- 保持会话上下文
+- 支持多轮补充、打断、继续推进
+- 回答任务状态
+- 选择何时委托给 swarm
 
-**新规则**：UI 改动必须在 PR description 带截图，否则 CI fail
-- 大幅缩短 review 时间 — 直接看截图，不用点 preview
+### swarm
+- 创建隔离执行上下文
+- 选择和驱动 coding harness
+- 建立 PR 产物链路
+- 通过外部信号做监控与重试
+- 向 OpenClaw 提供可查询交付状态
 
-### Step 7: 人工 Review
-- 现在才收到 Telegram 通知："PR #341 ready for review"
-- 此时：CI passed、3 个 AI reviewers approved、截图显示 UI 改动、所有边界情况都在 review comments 里
-- **人工 review 只需 5-10 分钟**
-- 很多 PR 不读代码直接 merge — 截图告诉我一切
+### Coding Harness
+- 遵守 prompt 和 DoD
+- 在隔离工作区执行实现
+- 生成提交、分支、PR 与必要工件
 
-### Step 8: Merge
-- PR merge
-- Daily cron job 清理孤立的 worktrees 和 task registry json
+## 7. Why Swarm Still Matters
 
-## Agent 选择策略
+即使 OpenClaw 已有原生 coding tool delegation，swarm 依然有独立价值：
 
-### Codex（主力，90% 任务）
-- 后端逻辑
-- 复杂 bugs
-- 多文件重构
-- 需要跨代码库推理的任何事
-- 更慢但彻底
+- 它把执行行为做成了稳定协议
+- 它把 PR/CI/review/screenshot gate 做成了确定性状态机
+- 它把失败重试做成了 evidence-driven loop
+- 它把不同 coding harness 收口成统一交付接口
 
-### Claude Code（前端 + git）
-- 更快，更擅长前端工作
-- 权限问题少，适合 git 操作
-- （注：Codex 5.3 现在更好更快了，用得少了）
+所以 swarm 的护城河不是“能调某个 CLI”，而是：
 
-### Gemini（设计感）
-- 美观 UI 的超能力
-- 先让 Gemini 生成 HTML/CSS spec
-- 再交给 Claude Code 在组件系统里实现
-- Gemini 设计，Claude 构建
+**能把持续对话中的业务意图稳定收敛成生产级 PR。**
 
-**Zoe 负责**：为每个任务选对的 agent，在它们之间路由输出
+## 8. Architectural Consequences
 
-## 主动工作发现
+这套架构意味着：
 
-Zoe 不等任务分配，主动找活干：
-- **早上**：扫 Sentry → 发现 4 个新错误 → spawn 4 agents 调查修复
-- **会后**：扫会议笔记 → 标记 3 个功能请求 → spawn 3 Codex agents
-- **晚上**：扫 git log → spawn Claude Code 更新 changelog 和客户文档
+- 不应把更多 CLI 支持误当作北极星
+- 不应把 OpenClaw 降级成单纯消息入口
+- 不应让每次补充要求都新开一个独立任务
+- 应优先建设 OpenClaw session 与 swarm task 的稳定映射
+- 应优先建设 interruption / continue / status query 的正式路径
 
-散步回来，Telegram："7 PRs ready for review. 3 features, 4 bug fixes."
-
-## 奖励信号
-
-成功标志：
-- CI passing
-- 所有三个 code reviews passing
-- Human merge
-
-任何失败触发循环。随着时间推移，Zoe 写更好的 prompt，因为她记得什么 shipped 了
-
-成功模式被记录：
-- "这个 prompt 结构对 billing features 有效"
-- "Codex 需要提前给 type definitions"
-- "总是包含 test file paths"
-
-## 实现方式
-
-**最简单方法**：
-把整篇文章复制给 OpenClaw，说："Implement this agent swarm setup for my codebase."
-
-它会：
-- 读架构
-- 创建脚本
-- 设置目录结构
-- 配置 cron 监控
-
-10 分钟搞定。
-
-## 关键脚本
-
-### `.clawdbot/check-agents.sh`
-- 检查 tmux sessions 是否 alive
-- 检查 tracked branches 是否有 open PRs
-- 通过 `gh cli` 检查 CI 状态
-- 自动 respawn 失败的 agents（最多 3 次）
-- 只在需要人工注意时 alert
-
-### Agent 启动脚本
-```bash
-# Codex
-codex --model gpt-5.3-codex \
-  -c "model_reasoning_effort=high" \
-  --dangerously-bypass-approvals-and-sandbox \
-  "Your prompt here"
-
-# Claude Code  
-claude --model claude-opus-4.5 \
-  --dangerously-skip-permissions \
-  -p "Your prompt here"
-```
-
-## 硬件需求
-
-**瓶颈**：RAM
-- 每个 agent 需要独立 worktree
-- 每个 worktree 需要独立 `node_modules`
-- 每个 agent 跑 builds、type checks、tests
-- 5 agents 同时 = 5 个并行 TypeScript compilers + 5 个 test runners + 5 套依赖加载到内存
-
-**实际经验**：
-- 16GB Mac Mini：最多 4-5 agents（还得祈祷它们不同时 build）
-- 解决方案：128GB Mac Studio M4 Max ($3,500)
-
-## 愿景
-
-2026 年会看到大量一人百万美元公司。关键是理解如何构建递归自我改进的 agents。
-
-架构：
-- AI 编排器作为你的延伸（像 Zoe 对 Elvis）
-- 委派工作给专门的 agents 处理不同业务功能
-- Engineering、Customer support、Ops、Marketing
-- 每个 agent 专注擅长的事
-- 你保持激光聚焦和完全控制
-
-下一代创业者不会雇 10 人团队做一个人用对的系统能做的事。他们会这样构建 — 保持小规模、快速移动、每日发布。
-
-## Elvis 的项目
-
-**Agentic PR**：一人公司挑战企业 PR 巨头
-- Agents 帮助 startups 获得媒体报道
-- 无需 $10k/月 retainer
-- 真实客户、真实收入、真实 commits 发到 production
-
----
-
-## 可操作的下一步
-
-1. **立即可做**：
-   - 设置 `.clawdbot/` 目录结构
-   - 创建 `active-tasks.json` 追踪系统
-   - 写 `check-agents.sh` 监控脚本
-   - 配置 cron 每 10 分钟检查
-
-2. **需要实验**：
-   - tmux session 管理
-   - worktree 工作流
-   - 3-model code review pipeline
-   - 自动截图要求
-
-3. **需要优化**：
-   - Prompt 模板（针对不同任务类型）
-   - 失败模式识别和 respawn 策略
-   - 奖励信号收集和学习循环
-
-4. **硬件考虑**：
-   - 评估当前 RAM 是否够用
-   - 如果经常跑 >5 agents，考虑升级
+[PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md

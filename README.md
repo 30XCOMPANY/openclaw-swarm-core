@@ -1,7 +1,7 @@
 <div align="center">
 
 # 30X SWARM
-### OPENCLAW EDITION // PRIVATE DELIVERY OS
+### OPENCLAW EDITION // CONVERSATIONAL DELIVERY KERNEL
 
 <p>
   <img src="https://img.shields.io/badge/Visibility-PRIVATE-0f172a?style=for-the-badge" alt="private" />
@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/Notifications-OpenClaw-334155?style=for-the-badge" alt="openclaw-notify" />
 </p>
 
-<p><strong>Not replacing teams. Multiplying every individual into a 30-person department.</strong></p>
+<p><strong>OpenClaw steers the conversation. Swarm converges the delivery.</strong></p>
 
 </div>
 
@@ -18,32 +18,37 @@
 
 ## Why 30X?
 
-`openclaw-swarm-core` is a reusable swarm control plane.
+`openclaw-swarm-core` is a reusable swarm delivery kernel for OpenClaw-native conversational software delivery.
 
 `30X` means leverage, not layoffs.
 - target: every employee gets the effective execution bandwidth of a 30-person org unit
-- method: orchestration + deterministic delivery gates + multi-agent parallelism
+- method: OpenClaw conversation + deterministic delivery gates + standardized coding harness behavior
 - outcome: faster shipping without surrendering quality controls
 
 It gives every repo the same hardened runtime:
+- OpenClaw-native conversational delegation
 - deterministic task state machine
 - multi-driver execution (`codex`, `claudecode`, `opencode`, `gemini-cli`)
 - SQLite truth source + JSON compatibility projection
 - OpenClaw-native notifications (`openclaw message send`)
 - thin per-project wrappers via `swarm seed`
 
+North star:
+
+**Under ongoing conversation and steering through OpenClaw, maximize production-grade merged deliveries per unit of human attention.**
+
 ---
 
-## Swarm Kill Chain
+## Conversational Delivery Chain
 
 | Stage | Owner | Output |
 |---|---|---|
-| Intent | Human | feature/bug instruction |
-| Orchestration | OpenClaw | scoped task + selected driver |
-| Execution | Driver + worktree + tmux | commits + branch + PR attempt |
+| Conversation | Human + OpenClaw | scoped and clarified requirement |
+| Delegation | OpenClaw | task + driver + steering context |
+| Execution | swarm + driver + worktree + tmux | commits + branch + PR attempt |
 | Deterministic Monitor | `swarm monitor tick` | state updates + retries + gates |
 | Gate | DoD checks | `ready_to_merge` or failure path |
-| Notification | OpenClaw message layer | Discord update to human |
+| Notification | OpenClaw message layer | channel update and status reply |
 
 ---
 
@@ -112,87 +117,33 @@ Seed generates project `.openclaw/` wrappers:
 
 ```mermaid
 flowchart TB
-    SEN["Sentry Error Logs"]
-    SUP["Support Tickets"]
-    ME["Me / Team"]
-    MTG["Meeting Notes"]
+    HUMAN["Remote Human"]
+    CH["Discord / Telegram / Direct"]
+    OC["OpenClaw Native Session Layer"]
+    SES["Sessions + History + Steering"]
+    DEL["Delegation Boundary"]
+    SW["swarm Delivery Kernel"]
+    DR["Driver Layer"]
+    HAR["Codex / Claude / OpenCode / Gemini / ACP"]
+    GH["GitHub PR / CI / Reviews"]
+    DB["SQLite Task Truth"]
+    NT["OpenClaw Notify"]
 
-    OBS["Obsidian"]
-    MEM["Memory"]
-    SKL["Skills"]
-    MAIL["Emails"]
-    PROD["Prod DB (Read-Only)"]
+    HUMAN --> CH
+    CH --> OC
+    OC --> SES
+    SES --> DEL
+    DEL --> SW
+    SW --> DR
+    DR --> HAR
+    HAR --> GH
+    GH --> SW
+    SW --> DB
+    DB --> OC
+    SW --> NT
+    NT --> HUMAN
 
-    OC["OpenClaw Orchestrator<br/>Context + Routing + Prompting"]
-
-    C1["Codex Agent A"]
-    C2["Codex Agent B"]
-    C3["Codex Agent C"]
-    CC["ClaudeCode Agent"]
-    OP["OpenCode Agent"]
-    GM["Gemini CLI Agent"]
-
-    PIPE["GitHub CI/CD + Gates<br/>lint -> typecheck -> tests -> e2e -> AI reviews"]
-    MON["Deterministic Monitor<br/>tmux + PR + CI + reviews + screenshot gate"]
-    DEC{"DoD Passed?"}
-    RETRY["Evidence-Driven Retry<br/>context injection + scoped fixes"]
-    READY["ready_to_merge"]
-    NOTIFY["OpenClaw Notify<br/>Discord / Telegram"]
-
-    SEN --> OC
-    SUP --> OC
-    ME --> OC
-    MTG --> OC
-
-    OC --> OBS
-    OC --> MEM
-    OC --> SKL
-    OC --> MAIL
-    OC --> PROD
-
-    OC --> C1
-    OC --> C2
-    OC --> C3
-    OC --> CC
-    OC --> OP
-    OC --> GM
-
-    C1 --> PIPE
-    C2 --> PIPE
-    C3 --> PIPE
-    CC --> PIPE
-    OP --> PIPE
-    GM --> PIPE
-
-    PIPE --> MON
-    MON --> DEC
-    DEC -- "No" --> RETRY
-    RETRY --> OC
-    DEC -- "Yes" --> READY
-    READY --> NOTIFY
-    NOTIFY --> ME
-
-    TICK["cron every 10 minutes<br/>swarm monitor tick"] --> MON
-
-    classDef source fill:#1b1430,stroke:#b67cff,color:#f2e8ff,stroke-width:1.8px;
-    classDef human fill:#10201a,stroke:#2dd4bf,color:#d7fff3,stroke-width:1.8px;
-    classDef memory fill:#06202a,stroke:#22d3ee,color:#dbfbff,stroke-width:1.6px;
-    classDef core fill:#2b1015,stroke:#fb7185,color:#ffe4ea,stroke-width:2.2px;
-    classDef agent fill:#0c1c33,stroke:#60a5fa,color:#e3f0ff,stroke-width:1.6px;
-    classDef pipeline fill:#2f2416,stroke:#f59e0b,color:#fff2df,stroke-width:2px;
-    classDef decision fill:#1f1f1f,stroke:#e5e7eb,color:#f8fafc,stroke-width:1.8px;
-    classDef success fill:#0f2a16,stroke:#4ade80,color:#e7ffe8,stroke-width:1.8px;
-    classDef monitor fill:#27213b,stroke:#c084fc,color:#f1e8ff,stroke-width:1.6px;
-
-    class SEN,SUP,MTG source;
-    class ME human;
-    class OBS,MEM,SKL,MAIL,PROD memory;
-    class OC core;
-    class C1,C2,C3,CC,OP,GM agent;
-    class PIPE pipeline;
-    class DEC decision;
-    class READY,NOTIFY success;
-    class MON,RETRY,TICK monitor;
+    TICK["cron every 10 minutes<br/>swarm monitor tick"] --> SW
 ```
 
 ---
@@ -253,5 +204,6 @@ git pull
 ## Reading Order
 
 1. `reference/agent-swarm-usage.md`
-2. `reference/agent-swarm-architecture.md`
-3. `reference/agent-swarm-constitution-v1.md`
+2. `reference/agent-swarm-north-star-v1.md`
+3. `reference/agent-swarm-architecture.md`
+4. `reference/agent-swarm-constitution-v1.md`

@@ -1,149 +1,138 @@
-# 30X Swarm 使用说明书（2026-02-25 对齐版）
+<!--
+[INPUT]: 依赖 OpenClaw 当前原生会话能力，依赖 swarm-core CLI 和项目薄包装模板
+[OUTPUT]: 对外提供 30X Swarm x OpenClaw 的使用手册、操作路径与排障口径
+[POS]: reference 的操作文档，被 README 和人工运维流程引用
+[PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+-->
 
-## 1. 目标
+# 30X Swarm Usage Guide
 
-把人类业务意图稳定转译为可验收 PR 交付  
-系统默认遵循两层分工
-- 编排层（OpenClaw）负责上下文 选型 监控 重试 通知
-- 执行层（coding CLI）负责在隔离工作区完成代码与 PR
+## 1. Goal
 
-## 2. 当前能力状态
+Convert requirements expressed through ongoing OpenClaw conversation into reviewable PR delivery.
 
-已启用执行驱动
-- `codex`（默认 driver）
-- `claudecode`（你当前环境已配置）
+The system uses a three-layer split:
+- OpenClaw: remote entrypoint, ongoing conversation, steering, status replies
+- swarm: deterministic delivery kernel and gate system
+- coding harness: isolated code execution
+
+## 2. Current Capability State
+
+Verified OpenClaw-native abilities:
+- multi-channel remote messaging
+- `sessions` / `sessions_history` / `sessions_send` / `sessions_yield`
+- `session_status`
+- `sessions_spawn` / `subagents`
+- native `agent` turn execution
+- `acp` and bundled coding-agent skill
+
+Enabled execution drivers:
+- `codex`
+- `claudecode`
 - `opencode`
 - `gemini-cli`
 
-兼容提示
-- 旧项目若历史配置为 `[drivers.gemini-cli] enabled = false`，需改为 `true` 才能调度 Gemini
-
-## 3. 落地架构（当前实现）
+## 3. Current Runtime Shape
 
 ```text
-Global control plane
-/Users/oogie/.openclaw/swarm-core/
-├── swarm                      # 全局 CLI 入口
-├── swarm_cli.py               # 状态机 + 监控 + 重试 + DoD gate + 通知
-├── drivers/                   # codex / claudecode / opencode / gemini-cli
-└── templates/                 # 项目播种模板
+User-facing conversational plane
+OpenClaw session/channel
+├── receive requirement
+├── clarify / steer / interrupt / continue
+├── delegate into swarm
+└── answer status from swarm task state
 
-Per project thin layer
+Global delivery kernel
+/Users/oogie/.openclaw/swarm-core/
+├── swarm
+├── swarm_cli.py
+├── drivers/
+└── templates/
+
+Per-project thin layer
 <repo>/.openclaw/
-├── project.toml               # 项目配置（driver/通知/base branch）
-├── swarm.db                   # 真相源（SQLite）
-├── active-tasks.json          # 兼容投影（非真相源）
+├── project.toml
+├── swarm.db
+├── active-tasks.json
 ├── logs/
-├── spawn-agent.sh             # 薄包装 -> swarm task spawn
-├── redirect-agent.sh          # 薄包装 -> swarm task redirect
-├── kill-agent.sh              # 薄包装 -> swarm task kill
-├── check-agents.sh            # 薄包装 -> swarm monitor tick
-├── cleanup.sh                 # 薄包装 -> swarm cleanup tick
-└── status.sh                  # 薄包装 -> swarm status
+├── spawn-agent.sh
+├── redirect-agent.sh
+├── kill-agent.sh
+├── check-agents.sh
+├── cleanup.sh
+└── status.sh
 ```
 
-核心原则
-- 任务状态以 `swarm.db` 为唯一真相源
-- `active-tasks.json` 只做兼容输出
-- 监控按确定性外部信号运行（tmux/git/PR/CI/review）
+Core rules:
+- `swarm.db` is the canonical truth
+- `active-tasks.json` is compatibility output only
+- monitoring uses deterministic external signals
+- users interact with OpenClaw, not directly with `tmux`
 
-## 4. 一次性初始化（每个项目）
+## 4. Recommended Operating Model
+
+The recommended flow is:
+
+1. User starts through OpenClaw
+2. OpenClaw scopes and packages context
+3. OpenClaw delegates into swarm
+4. User continues steering through the same conversation
+5. swarm converges the evolving intent into one task context
+6. result returns as PR + task state
+
+Direct `.openclaw/*.sh` use remains a valid operator/debug path, not the ideal end-user surface.
+
+## 5. One-Time Project Bootstrap
 
 ```bash
-/Users/oogie/.openclaw/swarm-core/swarm seed --repo /abs/path/to/repo
+swarm seed --repo /abs/path/to/repo
 ```
 
-`seed` 会自动生成项目 `.openclaw/` 薄包装与默认 `project.toml`
+## 6. Manual Task Control
 
-## 5. 启动任务
+Recommended compatibility entrypoint:
 
-推荐（兼容入口）
 ```bash
 cd /abs/path/to/repo
 ./.openclaw/spawn-agent.sh \
   --id "fix-login-timeout-$(date +%s)" \
   --agent claudecode \
-  --progress-every 5 \
   --prompt "Fix login timeout and add tests"
 ```
 
-直接调用全局 CLI（等价）
+Equivalent global CLI:
+
 ```bash
-/Users/oogie/.openclaw/swarm-core/swarm task spawn \
+swarm task spawn \
   --repo /abs/path/to/repo \
   --task-id fix-login-timeout-$(date +%s) \
   --driver claudecode \
-  --progress-every-minutes 5 \
   --prompt "Fix login timeout and add tests"
 ```
 
-可选驱动
-- `auto`
-- `codex`
-- `claudecode`（`claude` 会被兼容映射）
-- `opencode`
-- `gemini-cli`
+Mid-flight correction:
 
-模型格式注意
-- 默认行为：若未显式配置 `model`，所有 driver 都沿用各自 CLI 本机默认模型。
-- `codex` / `claudecode` / `gemini-cli`：显式配置时使用裸模型名。
-- `opencode`：显式配置时使用 `provider/model`（示例：`default/gpt-5.3-codex`）。
-- 历史值 `openai/gpt-5.3-codex` 会自动归一化为 `default/gpt-5.3-codex`。
-
-进度播报参数
-- 默认每 5 分钟输出一次 `System: [swarm-progress] ...`
-- `--progress-every <minutes>` / `--progress-every-minutes <minutes>` 覆盖任务级间隔
-- `--no-progress` / `--no-progress-updates` 可关闭该任务进度播报
-
-## 6. 监控与操作
-
-状态查看
-```bash
-./.openclaw/status.sh
-./.openclaw/status.sh --json
-```
-
-单次巡检（确定性 tick）
-```bash
-./.openclaw/check-agents.sh
-```
-
-中途纠偏
 ```bash
 ./.openclaw/redirect-agent.sh <task-id> "Focus API first then UI"
 ```
 
-终止任务
-```bash
-./.openclaw/kill-agent.sh <task-id>
-```
+Interpretation:
+- `redirect` is the operator-facing compatibility primitive for steering
+- the ideal product path is OpenClaw mapping follow-up conversation into that task context
 
-清理终态资源
+## 7. Status and Cleanup
+
 ```bash
+./.openclaw/status.sh
+./.openclaw/status.sh --json
+./.openclaw/check-agents.sh
+./.openclaw/kill-agent.sh <task-id>
 ./.openclaw/cleanup.sh
 ```
 
-## 7. cron 建议
+## 8. Lifecycle
 
-监控循环（每 10 分钟）
-```bash
-openclaw cron add \
-  --name "swarm-monitor" \
-  --schedule "*/10 * * * *" \
-  --command "cd /abs/path/to/repo && ./.openclaw/check-agents.sh"
-```
-
-清理循环（每日）
-```bash
-openclaw cron add \
-  --name "swarm-cleanup" \
-  --schedule "0 2 * * *" \
-  --command "cd /abs/path/to/repo && ./.openclaw/cleanup.sh"
-```
-
-## 8. 状态机（实现口径）
-
-允许状态
+Allowed states:
 - `queued`
 - `running`
 - `pr_created`
@@ -155,100 +144,65 @@ openclaw cron add \
 - `failed`
 - `abandoned`
 
-终态
-- `merged`
-- `abandoned`
+Constraints:
+- no DoD bypass into `ready_to_merge`
+- steering should default to the existing task, not silently fork
 
-重试入口
-- 仅 `failed` `ci_failed` `review_changes_requested`
+## 9. DoD Gates
 
-## 9. DoD Gate（ready_to_merge 判定）
-
-全部通过才会进入 `ready_to_merge`
+All must pass before `ready_to_merge`:
 - `checks.prCreated`
 - `checks.branchMergeable`
 - `checks.ciPassed`
-- `checks.reviewCodexPassed`（若配置要求）
-- `checks.reviewClaudePassed`（若配置要求）
-- `checks.reviewGeminiPassed`（若配置要求）
-- `checks.uiScreenshotPresent`（UI 变更时必需）
+- `checks.reviewCodexPassed`
+- `checks.reviewClaudePassed`
+- `checks.reviewGeminiPassed`
+- `checks.uiScreenshotPresent` when UI changed
 
-## 10. 通知（已接入 OpenClaw 原生）
+## 10. Notification Path
 
-通知由 `swarm-core` 直接调用 `openclaw message send` 完成  
-默认走 Discord（按 `project.toml` 的 `[notifications]`）
+Notifications are sent through `openclaw message send`.
 
-示例配置
-```toml
-[notifications]
-provider = "openclaw"
-enabled = false
-channel = "discord"
-target = ""
-account = ""
-silent = false
-dry_run = false
-events = ["ready_to_merge", "merged"]
-allow_failure_events = false
-```
+This means OpenClaw is both:
+- the user-facing conversation layer
+- the status delivery layer
 
-说明
-- 发送成功会写入 `task_notifications` 去重
-- 发送失败会记事件 不中断状态机
-- 每轮 `monitor tick` 会补偿尝试未发送状态通知
-- 只有在 `enabled=true` 且 `target` 明确配置时才会发消息，避免跨频道误发
-- 若 `spawn` 能推断来源会话（如 `agent:main:discord:channel:<id>`），优先回发到该任务来源频道
-- 进度播报走同一条通知通道，每 `X` 分钟输出一次任务当前在做什么与下一步
+## 11. Capability Contract
 
-进度播报默认配置
-```toml
-[progress]
-enabled = true
-interval_minutes = 5
-```
+Correct promises:
+- start coding work through OpenClaw
+- continue steering during execution
+- interrupt or continue without dropping out of the conversation model
+- return PR-backed delivery artifacts rather than only text
 
-## 11. 日常排障
+Incorrect promises:
+- absolute zero-error execution
+- pure chat polling replacing deterministic monitors
+- every follow-up message automatically mapping perfectly without explicit task-state integration
 
-确认 CLI 可用
+## 12. Operator Debugging
+
 ```bash
 which codex
 which claude
 which opencode
-```
+which gemini
 
-查看任务日志
-```bash
 ls .openclaw/logs
 tail -n 200 .openclaw/logs/<task-id>.log
-```
 
-检查数据库记录
-```bash
 sqlite3 .openclaw/swarm.db "select id,status,driver,attempt_count,pr_number from tasks order by created_at desc limit 20;"
-sqlite3 .openclaw/swarm.db "select task_id,status,channel,target,sent_at from task_notifications order by sent_at desc limit 20;"
-sqlite3 .openclaw/swarm.db "select task_id,status,target,sent_at from task_progress_notifications order by sent_at desc limit 20;"
-```
-
-查看 tmux 会话
-```bash
 tmux ls
-tmux attach -t <session-name>
 ```
 
-非重试失败（会直接 `abandoned`）
-- `non_retryable_remote`: 远端不支持 `gh pr create`（例如本地裸仓库）
-- `non_retryable_auth_missing`: Gemini 鉴权缺失
-- `non_retryable_model_not_found`: 驱动模型在当前 provider 不可用
+## 13. Driver Strategy
 
-## 12. 推荐执行策略
+- `codex` for backend logic and complex refactors
+- `claudecode` for frontend changes and quick iteration
+- `opencode` for OpenCode-native flows
+- `auto` when the orchestrator should choose
 
-- 后端逻辑与复杂重构优先 `codex`
-- 前端改动和快速迭代优先 `claudecode`
-- 需要 OpenCode 生态时用 `opencode`
-- 优先用 `auto` 让编排层选驱动 只在你有明确意图时手选
-
----
-
-参考
-- 架构理念: `agent-swarm-architecture.md`
-- 系统宪法: `agent-swarm-constitution-v1.md`
+Read together with:
+- `agent-swarm-north-star-v1.md`
+- `agent-swarm-architecture.md`
+- `agent-swarm-constitution-v1.md`
