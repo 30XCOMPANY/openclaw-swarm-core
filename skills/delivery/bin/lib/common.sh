@@ -5,7 +5,7 @@
 # [INPUT]:  Shell environment, delivery.conf, SQLite DB, git repo
 # [OUTPUT]: State constants, config vars, die/now_iso/sql/ensure_db/etc.
 # [POS]:   Foundation library sourced by every delivery subcommand module
-# [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+# [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 # =============================================================================
 
 # -- Guard against double-source --

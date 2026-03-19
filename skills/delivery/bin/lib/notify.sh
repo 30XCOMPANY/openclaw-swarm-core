@@ -9,7 +9,7 @@
 #           build_notification_message, and supporting helpers
 # [POS]:   Notification subsystem; consumed by monitor/state modules to push
 #          status and progress updates via OpenClaw message routing
-# [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+# [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 # =============================================================================
 
 # -- Guard against double-source --

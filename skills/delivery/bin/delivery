@@ -5,7 +5,7 @@
 # [INPUT]:  CLI args, subcommand modules in lib/
 # [OUTPUT]: Dispatches to spawn/status/redirect/monitor/kill/cleanup/init
 # [POS]:   Top-level executable; the only user-facing binary for delivery skill
-# [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+# [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 # =============================================================================
 set -euo pipefail
 

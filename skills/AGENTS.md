@@ -13,4 +13,4 @@ Rules:
 - `coding/` is pure text (no executables); `delivery/` is self-contained (text + shell CLI in `bin/`).
 - No other top-level skill directories should be created without updating this manifest.
 
-[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+[PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md

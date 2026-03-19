@@ -4,7 +4,7 @@
 -- [INPUT]:  SQLite3 runtime via common.sh ensure_db()
 -- [OUTPUT]: 7 tables + 7 indexes for delivery task lifecycle
 -- [POS]:   Static DDL consumed by common.sh; byte-compatible with legacy swarm.db
--- [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+-- [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 -- =============================================================================
 
 PRAGMA journal_mode=WAL;

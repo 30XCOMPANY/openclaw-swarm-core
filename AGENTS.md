@@ -7,7 +7,6 @@ skills/coding/ - Pure text ACP operations guide (/coding)
 skills/delivery/ - Self-contained delivery skill with embedded CLI (/delivery)
 skills/delivery/bin/ - Shell-based delivery runtime (zero Python dependency)
 reference/ - Maintainer docs for system definition, architecture, and constitution
-.archive/ - Historical material and superseded operational docs
 </directory>
 
 <config>

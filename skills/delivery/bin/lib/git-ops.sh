@@ -7,7 +7,7 @@
 #           check_ci_status, check_review_status, detect_ui_change,
 #           cmd_cleanup, cleanup_task_artifacts
 # [POS]:   Git/PR/CI operations layer; consumed by spawn, monitor, cleanup commands
-# [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+# [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 # =============================================================================
 
 # -- Guard against double-source --

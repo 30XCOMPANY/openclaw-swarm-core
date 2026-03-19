@@ -14,7 +14,7 @@
 # [POS]:   Monitor subsystem; invoked by bin/delivery entrypoint as `monitor`
 #          subcommand. Reads active tasks, drives state transitions,
 #          handles evidence-driven retry, flushes notifications.
-# [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+# [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 # =============================================================================
 [[ -n "${_MONITOR_SH_LOADED:-}" ]] && return 0
 readonly _MONITOR_SH_LOADED=1

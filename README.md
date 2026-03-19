@@ -202,7 +202,6 @@ git pull
 | `skills/delivery/` | `/delivery` — self-contained delivery skill with embedded CLI |
 | `skills/delivery/bin/` | Shell-based delivery runtime (CLI entrypoint + lib modules) |
 | `reference/` | Maintainer docs: architecture, constitution, north star |
-| `.archive/` | Historical material and superseded operational docs |
 | `install.sh` | Skill installer + CLI linker |
 | `CHANGELOG.md` | Release log for runtime behavior changes |
 

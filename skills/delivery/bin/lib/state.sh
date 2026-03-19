@@ -13,7 +13,7 @@
 # [OUTPUT]: check_transition, transition_task, cmd_init, cmd_spawn, cmd_status,
 #           cmd_redirect, cmd_kill — the five core command handlers
 # [POS]:   State machine + command handler layer; wired by bin/delivery entrypoint
-# [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+# [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 # =============================================================================
 
 # -- Guard against double-source --

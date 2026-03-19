@@ -7,7 +7,7 @@
 #           resolve_driver — four functions replacing legacy Python driver classes
 # [POS]:   Driver abstraction layer; consumed by spawn/run modules to dispatch
 #          tasks to codex, claude, opencode, or gemini CLIs
-# [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+# [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 # =============================================================================
 
 # -- Guard against double-source --
