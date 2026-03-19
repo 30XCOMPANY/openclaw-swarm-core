@@ -13,5 +13,6 @@ Shell-based delivery CLI — deterministic task orchestration (spawn/monitor/kil
 - `common.sh`: State constants, config loader, SQLite helpers, repo utilities
 - `drivers.sh`: Driver selection, command building, model normalization (4 functions)
 - `git-ops.sh`: Git worktree, branch, PR, CI check, review, UI detection, cleanup (10 functions)
+- `notify.sh`: OpenClaw notification routing and dispatch — status/progress notifications (12 functions)
 
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
