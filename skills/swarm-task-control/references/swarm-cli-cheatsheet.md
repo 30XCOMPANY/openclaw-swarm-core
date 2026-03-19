@@ -18,6 +18,12 @@ swarm cleanup tick --repo /abs/path/to/repo
 swarm status --repo /abs/path/to/repo --format json
 ```
 
+Retry note:
+
+- there is no standalone `swarm task retry`
+- evidence-driven retries are launched by `swarm monitor tick`
+- retryable states are `failed`, `ci_failed`, and `review_changes_requested`
+
 Project wrapper equivalents:
 
 ```bash
@@ -28,3 +34,7 @@ Project wrapper equivalents:
 ./.openclaw/cleanup.sh
 ./.openclaw/status.sh --json
 ```
+
+Wrapper note:
+
+- `./.openclaw/check-agents.sh` is the project-level monitor entrypoint and therefore also the retry trigger

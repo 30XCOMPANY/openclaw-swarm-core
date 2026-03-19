@@ -7,7 +7,7 @@
 
 # Direct Coding Escalation Rules
 
-Leave direct coding and switch to `$delivery` when one or more are true:
+Leave direct coding and switch to `/delivery` when one or more are true:
 
 - the user wants a PR
 - the user wants merge-ready output
@@ -18,3 +18,8 @@ Leave direct coding and switch to `$delivery` when one or more are true:
 - the task is large enough that retry and cleanup matter
 
 Stay in direct coding when the user mainly wants immediate execution, explanation, or a patch in the current conversation.
+
+Operator note:
+
+- `/delivery` is task-centric, not harness-question-centric
+- once the work becomes delivery, do not block on "which harness?" unless the operator explicitly cares

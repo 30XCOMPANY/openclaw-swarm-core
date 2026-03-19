@@ -12,7 +12,7 @@ Use this language when explaining `/delivery`:
 - "This enters advanced delivery mode."
 - "The task will be tracked as a Swarm task."
 - "The goal is PR-backed, merge-ready convergence."
-- "You can come back later and ask for status."
+- "You can come back later and ask `/swarm` for status or control."
 
 What delivery mode should imply:
 
@@ -24,3 +24,5 @@ What delivery mode should imply:
 6. cleanup at the end
 
 Do not describe it as magic autonomy. Describe it as deterministic delivery infrastructure.
+
+Do not frame `/delivery` as "pick a harness and code". Frame it as "enter tracked delivery mode".

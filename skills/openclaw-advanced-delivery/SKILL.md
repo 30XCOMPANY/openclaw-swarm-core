@@ -24,6 +24,10 @@ Use this skill for the `/delivery` path.
 - create a task object, not just a transient execution
 - converge toward PR-backed, merge-ready delivery
 
+Unlike `/coding`, `/delivery` is not primarily about choosing a harness. It is about choosing the tracked delivery path.
+
+Do not force a harness-selection question at the start of `/delivery` unless the operator explicitly asks for a specific driver. Auto driver selection is acceptable.
+
 ## Use This When
 
 The user wants:
@@ -44,15 +48,15 @@ Do not enter delivery mode for:
 - small synchronous requests
 - tasks better handled in one direct harness turn
 
-In those cases, use `$coding`.
+In those cases, use `/coding`.
 
 ## Workflow
 
 1. Confirm the task belongs in advanced delivery mode.
 2. Frame the result as delivery, not just execution.
 3. Enter Swarm mode and create a task.
-4. Keep user-facing updates centered on status, PR, and gates.
-5. Route in-flight control to `$swarm`.
+4. Keep user-facing updates centered on task state, PR, and gates.
+5. Route in-flight control to `/swarm`.
 
 ## Trigger Guidance
 

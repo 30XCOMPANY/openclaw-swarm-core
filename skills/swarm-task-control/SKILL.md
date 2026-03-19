@@ -20,6 +20,8 @@ Use this skill only after a task has already entered advanced delivery mode.
 
 This skill controls existing Swarm tasks. It does not decide whether a task should enter Swarm.
 
+There is no separate `retry` command in the current Swarm CLI. Retry progression happens through `monitor`, which inspects retryable states and launches evidence-driven retries when allowed.
+
 ## Primary Actions
 
 - read task state
@@ -46,6 +48,8 @@ The user asks:
 - can we retry or monitor it
 - can we clean it up
 - can we stop it
+
+When the ask is "retry it", interpret that as "run the monitor/retry path", not as a dedicated manual subcommand.
 
 ## References
 

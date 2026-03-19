@@ -21,8 +21,11 @@ Use this skill for the default `/coding` path.
 `/coding` means:
 
 - direct harness execution
+- conversation-bound execution in the current thread
 - no Swarm task lifecycle by default
-- no PR/gate/retry contract by default
+- no PR/gate/retry/status-later contract by default
+
+If the real ask is PR-backed delivery, do not keep the user in `/coding`. Route to `/delivery`.
 
 ## Required Interaction
 
@@ -33,6 +36,8 @@ If the user has not already picked a coding harness, ask:
 Do not skip this. Harness choice is required for `/coding`.
 
 If the user already named a harness, use it and continue.
+
+If the request is actually about PRs, review gates, retries, or "I will check back later", switch to `/delivery` instead of asking for a harness first.
 
 ## When To Use
 
@@ -55,7 +60,7 @@ Do not stay in direct coding when the user clearly wants:
 - retry/cleanup behavior
 - a task that can be checked later by status
 
-In that case, recommend switching to `$delivery`.
+In that case, recommend switching to `/delivery`.
 
 ## Workflow
 
@@ -63,7 +68,7 @@ In that case, recommend switching to `$delivery`.
 2. Restate the task briefly in direct execution terms.
 3. Execute through the chosen harness.
 4. Report concrete results.
-5. If the task grows into delivery work, escalate to `$delivery`.
+5. If the task grows into delivery work, escalate to `/delivery`.
 
 ## Harness Selection
 

@@ -12,17 +12,17 @@ Use these simple interpretations:
 - `queued`: task accepted but not yet running
 - `running`: harness is executing inside worktree/tmux
 - `pr_created`: PR exists; waiting for checks and reviews
-- `ci_failed`: CI failed; retry may be needed
+- `ci_failed`: CI failed; retryable via monitor if attempts remain
 - `ci_passed`: CI passed; still waiting on remaining gates
-- `review_changes_requested`: review asked for changes; retry/fix path
+- `review_changes_requested`: review asked for changes; retryable via monitor if attempts remain
 - `ready_to_merge`: all configured gates passed
 - `merged`: terminal success
-- `failed`: execution failed before successful convergence
+- `failed`: execution failed before successful convergence; retryable via monitor if attempts remain
 - `abandoned`: terminal stop condition
 
 Recommended guidance:
 
 - if `running`, talk about progress and next gate
-- if `ci_failed` or `review_changes_requested`, talk about retry/fix path
+- if `ci_failed`, `review_changes_requested`, or `failed`, talk about the monitor-driven retry/fix path
 - if `ready_to_merge`, say it is ready for merge, not merely "looks good"
 - if terminal, explain whether cleanup is still pending

@@ -11,6 +11,7 @@
 法则
 - 只控制已存在的 Swarm task。
 - 不负责决定是否进入 delivery。
+- 不提供独立 retry 命令；重试推进由 monitor 周期驱动。
 - 优先读状态，再执行 redirect、kill、monitor 或 cleanup。
 
 [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md

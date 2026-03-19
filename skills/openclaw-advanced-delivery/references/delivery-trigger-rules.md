@@ -29,3 +29,8 @@ Good user-facing rule:
 
 - "Do it now" -> direct coding
 - "Take this to PR / merge-ready" -> advanced delivery
+
+Boundary note:
+
+- if the user is choosing a delivery path, do not stop to ask for a coding harness first
+- `/delivery` can stay driver-agnostic unless a specific driver choice matters

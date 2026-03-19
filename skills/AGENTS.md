@@ -9,6 +9,7 @@
 
 架构边界
 - `skills/` 是公开给 agent 的操作层，不承载 runtime 内核实现。
+- 公开入口固定为 `/coding`、`/delivery`、`/swarm`，文档不得混用其它用户口径。
 - skill 必须反映 `OpenClaw direct coding` 与 `Swarm advanced delivery mode` 的边界，不能重新发明产品结构。
 - 引用规则、决策表与命令速查放在各 skill 的 `references/`，保持 `SKILL.md` 短而硬。
 

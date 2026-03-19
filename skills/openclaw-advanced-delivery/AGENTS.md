@@ -11,6 +11,7 @@
 法则
 - 这是 `/delivery`，不是普通 coding。
 - 以交付收敛为中心，不以 harness 选择为中心。
+- 默认允许 driver 自动选择；除非操作者明确在意，否则不要先逼用户选 harness。
 - 只有任务真正需要 PR/gate/retry/status 时才进入。
 
 [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md

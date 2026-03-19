@@ -32,7 +32,7 @@ It gives every repo the same hardened runtime:
 - SQLite truth source + JSON compatibility projection
 - OpenClaw-native notifications (`openclaw message send`)
 - thin per-project wrappers via `swarm seed`
-- optional skills layer for `/coding`, `/delivery`, and Swarm task control
+- optional skills layer for `/coding`, `/delivery`, and `/swarm`
 
 North star:
 
@@ -106,6 +106,18 @@ What this prompt is for:
 - it gives another OpenClaw agent a single copy-paste install task
 - it keeps the public entrypoints fixed as `/coding`, `/delivery`, and `/swarm`
 - it standardizes slash-command enablement instead of relying on implicit defaults
+
+---
+
+## Skill Modes
+
+Use the three skills as distinct product surfaces, not loose synonyms:
+
+| Slash | Purpose | Key Rule |
+|---|---|---|
+| `/coding` | direct coding in the current conversation | ask for harness first if not already chosen |
+| `/delivery` | tracked Swarm delivery toward PR-backed merge-ready output | do not force harness selection first |
+| `/swarm` | inspect or control an existing Swarm task | read status first; retry progression happens via monitor |
 
 ---
 

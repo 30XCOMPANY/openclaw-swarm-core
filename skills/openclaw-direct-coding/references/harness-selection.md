@@ -21,4 +21,8 @@ Simple recommendation pattern:
 - existing OpenCode setup: recommend `OpenCode`
 - explicit Gemini preference: recommend `Gemini CLI`
 
+Boundary rule:
+
+- if the user is not really choosing a harness, and instead wants PR/gates/merge-ready delivery, recommend `/delivery` instead of guessing a harness
+
 If you still lack enough information, ask the user to choose instead of guessing.
