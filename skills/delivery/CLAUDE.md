@@ -25,5 +25,6 @@ Self-contained delivery skill — shell CLI + docs. Merges old `/delivery` and `
 - `git-ops.sh`: Git worktree, branch, PR, CI check, review, UI detection, cleanup (10 functions)
 - `notify.sh`: OpenClaw notification routing and dispatch — status/progress notifications (12 functions)
 - `state.sh`: SQLite state machine + 5 command handlers (init, spawn, status, redirect, kill)
+- `monitor.sh`: Deterministic inspection loop — inspect active tasks, drive state transitions, evidence-driven retry, notification flush (1 entrypoint + 10 internal helpers)
 
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
