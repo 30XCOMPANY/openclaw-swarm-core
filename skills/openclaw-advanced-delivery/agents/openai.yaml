@@ -1,0 +1,8 @@
+interface:
+  display_name: "Advanced Delivery"
+  short_description: "Use Swarm for PR-backed, merge-ready delivery work"
+  brand_color: "#B45309"
+  default_prompt: "Use $delivery to run this as an advanced delivery task instead of direct coding."
+
+policy:
+  allow_implicit_invocation: true

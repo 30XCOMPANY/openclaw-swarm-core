@@ -1,0 +1,8 @@
+interface:
+  display_name: "Direct Coding"
+  short_description: "Pick a harness and execute directly without Swarm"
+  brand_color: "#1D4ED8"
+  default_prompt: "Use $coding for this task and ask me which coding harness to use first."
+
+policy:
+  allow_implicit_invocation: true

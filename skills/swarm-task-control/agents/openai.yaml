@@ -1,0 +1,8 @@
+interface:
+  display_name: "Swarm Task Control"
+  short_description: "Inspect and control tasks already running in Swarm"
+  brand_color: "#475569"
+  default_prompt: "Use $swarm to inspect or control an existing Swarm delivery task."
+
+policy:
+  allow_implicit_invocation: true

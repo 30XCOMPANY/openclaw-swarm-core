@@ -4,7 +4,9 @@ Reusable 30X Swarm delivery kernel package for OpenClaw-native conversational de
 
 <directory>
 swarm-core/ - Runtime core (CLI/state machine/drivers/templates)
-reference/ - Architecture, north star, constitution, and usage docs
+reference/ - System definition, architecture, and constitution docs
+skills/ - Agent-facing operation layer (`/coding`, `/delivery`, and Swarm task control)
+.archive/ - Historical material and superseded operational docs
 </directory>
 
 <config>

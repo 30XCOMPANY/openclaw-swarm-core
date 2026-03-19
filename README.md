@@ -32,6 +32,7 @@ It gives every repo the same hardened runtime:
 - SQLite truth source + JSON compatibility projection
 - OpenClaw-native notifications (`openclaw message send`)
 - thin per-project wrappers via `swarm seed`
+- optional skills layer for `/coding`, `/delivery`, and Swarm task control
 
 North star:
 
@@ -72,6 +73,39 @@ swarm --help
 # or
 ~/.openclaw/swarm-core/swarm --help
 ```
+
+---
+
+## Ask An OpenClaw Agent To Install The Skills
+
+Send this block directly to an OpenClaw agent:
+
+```text
+Please install the three skills from https://github.com/30XCOMPANY/openclaw-swarm-core into my current OpenClaw environment.
+
+Requirements:
+- install `skills/openclaw-direct-coding` as `/coding`
+- install `skills/openclaw-advanced-delivery` as `/delivery`
+- install `skills/swarm-task-control` as `/swarm`
+- keep the runtime install at `~/.openclaw/swarm-core`
+- make sure slash commands are enabled for chat use
+- if needed, set OpenClaw commands config to:
+  - `commands.text = true`
+  - `commands.native = true`
+  - `commands.nativeSkills = true`
+
+Execution steps:
+1. Clone or update `openclaw-swarm-core`.
+2. Run `./install.sh --yes --link-bin`.
+3. Install or link the three skill folders into the current OpenClaw skills directory.
+4. Verify that `/coding`, `/delivery`, and `/swarm` are available.
+5. Reply with the final runtime path, skills path, and any restart/reload step that was required.
+```
+
+What this prompt is for:
+- it gives another OpenClaw agent a single copy-paste install task
+- it keeps the public entrypoints fixed as `/coding`, `/delivery`, and `/swarm`
+- it standardizes slash-command enablement instead of relying on implicit defaults
 
 ---
 
@@ -124,7 +158,8 @@ flowchart TB
     DEL["Delegation Boundary"]
     SW["swarm Delivery Kernel"]
     DR["Driver Layer"]
-    HAR["Codex / Claude / OpenCode / Gemini / ACP"]
+    HAR["Codex / Claude / OpenCode / Gemini"]
+    ACP["ACP Bridge Surface"]
     GH["GitHub PR / CI / Reviews"]
     DB["SQLite Task Truth"]
     NT["OpenClaw Notify"]
@@ -137,6 +172,7 @@ flowchart TB
     SW --> DR
     DR --> HAR
     HAR --> GH
+    OC -. optional bridge .-> ACP
     GH --> SW
     SW --> DB
     DB --> OC
@@ -145,6 +181,12 @@ flowchart TB
 
     TICK["cron every 10 minutes<br/>swarm monitor tick"] --> SW
 ```
+
+Current reality:
+
+- current Swarm drivers are direct CLI adapters
+- ACP is an OpenClaw bridge surface, not a current Swarm driver path
+- future ACP-backed drivers can be added later without changing the delivery kernel
 
 ---
 
@@ -156,6 +198,12 @@ flowchart TB
 | `claudecode` | frontend, rapid iteration | inherit Claude Code default | `claude` alias supported |
 | `opencode` | OpenCode flows | inherit OpenCode default | set `model` only when you want explicit override |
 | `gemini-cli` | Gemini CLI execution | inherit Gemini CLI default | auth required |
+
+ACP note:
+
+- ACP is not listed here because it is not a current `swarm-core` driver
+- ACP belongs to the OpenClaw bridge layer today
+- an ACP-backed driver is a future integration path, not current runtime behavior
 
 `gemini-cli` can be toggled per project:
 
@@ -196,14 +244,18 @@ git pull
 ## Repo Structure
 
 - `swarm-core/` runtime core
-- `reference/` architecture, constitution, usage
+- `reference/` system definition, architecture, and constitution
+- `skills/` agent-facing operation skills
+- `.archive/` superseded operational docs and history
 - `install.sh` one-command agent installer
 
 ---
 
 ## Reading Order
 
-1. `reference/agent-swarm-usage.md`
-2. `reference/agent-swarm-north-star-v1.md`
-3. `reference/agent-swarm-architecture.md`
-4. `reference/agent-swarm-constitution-v1.md`
+1. `reference/agent-swarm-north-star-v1.md`
+2. `reference/agent-swarm-architecture.md`
+3. `reference/agent-swarm-constitution-v1.md`
+4. `skills/openclaw-direct-coding/` -> `/coding`
+5. `skills/openclaw-advanced-delivery/` -> `/delivery`
+6. `skills/swarm-task-control/` -> `/swarm`
