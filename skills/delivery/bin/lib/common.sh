@@ -173,7 +173,7 @@ ensure_db() {
 
   if [[ ! -f "$db" ]]; then
     [[ -f "$schema" ]] || die "Schema file not found: $schema"
-    sqlite3 "$db" < "$schema"
+    sqlite3 "$db" < "$schema" >/dev/null
   fi
 }
 

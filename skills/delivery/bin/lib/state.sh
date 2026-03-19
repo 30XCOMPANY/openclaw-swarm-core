@@ -35,20 +35,30 @@ source "${SCRIPT_DIR}/notify.sh"
 # State transition map — mirrors Python STATE_TRANSITIONS exactly
 # =============================================================================
 
-declare -A TRANSITIONS
-TRANSITIONS[queued]="running abandoned"
-TRANSITIONS[running]="pr_created failed abandoned"
-TRANSITIONS[pr_created]="ci_failed ci_passed review_changes_requested ready_to_merge merged abandoned"
-TRANSITIONS[ci_failed]="running abandoned"
-TRANSITIONS[ci_passed]="review_changes_requested ready_to_merge merged ci_failed abandoned"
-TRANSITIONS[review_changes_requested]="running ready_to_merge abandoned"
-TRANSITIONS[ready_to_merge]="merged review_changes_requested ci_failed abandoned"
-TRANSITIONS[failed]="running abandoned"
-TRANSITIONS[merged]=""
-TRANSITIONS[abandoned]=""
+# _allowed_transitions <state>
+#   Prints space-separated list of valid target states.
+#   Pure function — no global mutable state, bash 3.2 compatible.
+_allowed_transitions() {
+  case "${1:-}" in
+    queued)                     printf '%s' "running abandoned" ;;
+    running)                    printf '%s' "pr_created failed abandoned" ;;
+    pr_created)                 printf '%s' "ci_failed ci_passed review_changes_requested ready_to_merge merged abandoned" ;;
+    ci_failed)                  printf '%s' "running abandoned" ;;
+    ci_passed)                  printf '%s' "review_changes_requested ready_to_merge merged ci_failed abandoned" ;;
+    review_changes_requested)   printf '%s' "running ready_to_merge abandoned" ;;
+    ready_to_merge)             printf '%s' "merged review_changes_requested ci_failed abandoned" ;;
+    failed)                     printf '%s' "running abandoned" ;;
+    merged)                     printf '%s' "" ;;
+    abandoned)                  printf '%s' "" ;;
+    *)                          printf '%s' "" ;;
+  esac
+}
+
+# All known states — for completeness checks
+readonly ALL_STATES="queued running pr_created ci_failed ci_passed review_changes_requested ready_to_merge merged failed abandoned"
 
 # =============================================================================
-# check_transition — validate old → new against TRANSITIONS map
+# check_transition — validate old → new against transition map
 # =============================================================================
 # Same-state is a no-op (returns 0). Invalid transition → die.
 
@@ -59,7 +69,8 @@ check_transition() {
   # Same state: no-op
   [[ "$old" == "$new" ]] && return 0
 
-  local allowed="${TRANSITIONS[$old]:-}"
+  local allowed
+  allowed="$(_allowed_transitions "$old")"
   local target
   for target in $allowed; do
     [[ "$target" == "$new" ]] && return 0
