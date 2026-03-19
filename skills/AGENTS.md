@@ -8,13 +8,13 @@
 - swarm-task-control/: Swarm 任务控制 skill，负责已进入 delivery 模式后的状态查询与操控。
 
 架构边界
-- `skills/` 是公开给 agent 的操作层，不承载 runtime 内核实现。
+- `skills/` 是仓库的第一入口和唯一公开产品面，不承载 runtime 内核实现。
 - 公开入口固定为 `/coding`、`/delivery`、`/swarm`，文档不得混用其它用户口径。
 - skill 必须反映 `OpenClaw direct coding` 与 `Swarm advanced delivery mode` 的边界，不能重新发明产品结构。
 - 引用规则、决策表与命令速查放在各 skill 的 `references/`，保持 `SKILL.md` 短而硬。
 
 依赖关系
-- 输入依赖: `README.md`、`reference/`、`swarm-core/` 当前实现。
+- 输入依赖: `README.md`（公开口径）、`swarm-core/` 当前实现、`reference/` 系统约束。
 - 输出影响: agent 使用路径、用户入口口径、Swarm 触发和控制方式。
 
 [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md

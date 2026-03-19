@@ -22,6 +22,14 @@ Scope: OpenClaw-native conversational delivery
 - OpenClaw 负责理解和持续承接人类意图
 - swarm 负责让交付过程在机器侧可控、可监控、可恢复
 
+在这个仓库里，还要再补上一层产品包装事实：
+
+- `skills/` 是用户看到的 front door
+- `swarm-core/` 是 front door 背后的 runtime
+- `reference/` 是维护者读的系统文档
+
+所以实现上是三层目录，产品上只有一层公开表面：`/coding`、`/delivery`、`/swarm`
+
 ## 2. Why This Split Exists
 
 如果把业务意图、多轮澄清、历史记忆、远程消息和代码执行塞进同一个执行器，会同时出现两种退化：
@@ -94,6 +102,12 @@ flowchart LR
 
 3. **Delivery is artifact-backed**
 - 交付完成的标志是 PR/gates/state，不是 agent 说“我做完了”
+
+对仓库组织的直接要求：
+
+- README 必须先讲 skills，再讲 runtime
+- `skills/` 必须先于 `swarm-core/` 被用户看到
+- `reference/` 不得替代 skills 成为上手入口
 
 ## 6. Responsibility Split
 

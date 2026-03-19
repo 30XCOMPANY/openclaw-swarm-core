@@ -18,6 +18,14 @@ Scope: OpenClaw-native conversational delivery system
 
 **OpenClaw-native conversational control plane + swarm deterministic delivery kernel**
 
+在本仓库中的公开产品面固定为：
+
+- `/coding`
+- `/delivery`
+- `/swarm`
+
+也就是说，用户通过 skills 进入系统；Swarm 作为确定性内核在这些 skills 背后工作。
+
 一句话北极星：
 
 **让用户只需远程与 OpenClaw 对话，OpenClaw 基于原生会话与工具能力驱动 swarm，把多轮意图稳定收敛为可审查、可追踪、可合并的生产级 PR。**
@@ -73,6 +81,7 @@ Guardrails:
 ## 6. Product Contract
 
 系统对外承诺：
+- 用户首先接触的是 skills，而不是 runtime 目录结构
 - 用户只需要与 OpenClaw 对话，不需要直接操作底层 coding tools
 - 用户可以在执行中继续补充约束、打断或要求继续
 - 默认产物是可追踪任务状态与 PR，不只是文本回复

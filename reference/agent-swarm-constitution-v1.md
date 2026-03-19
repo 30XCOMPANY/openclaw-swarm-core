@@ -27,6 +27,7 @@ The system is:
 - `OpenClaw-native conversational control plane`
 - `swarm deterministic delivery kernel`
 - `coding harness execution substrate`
+- `skills-first product surface exposing /coding, /delivery, and /swarm`
 
 The system is not:
 - A standalone swarm product detached from OpenClaw sessions
@@ -59,6 +60,11 @@ Coding harnesses (Codex / ClaudeCode / OpenCode / Gemini CLI / ACP-backed runtim
 1. Conversational ownership:
 - User-visible task intent belongs to the OpenClaw session.
 - swarm is the execution kernel behind that conversation, not a separate product surface.
+
+1a. Public entry discipline:
+- The repo's public entry surface is the skills layer.
+- `/coding`, `/delivery`, and `/swarm` are the stable user-facing entrypoints.
+- Runtime internals and governance docs must not displace that entry path.
 
 2. Context separation:
 - Business context, steering history, and user corrections belong to OpenClaw.

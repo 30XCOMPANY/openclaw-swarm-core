@@ -1,38 +1,54 @@
 <div align="center">
 
 # 30X SWARM
-### OPENCLAW EDITION // CONVERSATIONAL DELIVERY KERNEL
+### OPENCLAW EDITION // SKILLS-FIRST DELIVERY SYSTEM
 
 <p>
   <img src="https://img.shields.io/badge/Visibility-PRIVATE-0f172a?style=for-the-badge" alt="private" />
-  <img src="https://img.shields.io/badge/Default_Driver-codex-111827?style=for-the-badge" alt="default-driver" />
-  <img src="https://img.shields.io/badge/State_Truth-SQLite-1f2937?style=for-the-badge" alt="sqlite" />
-  <img src="https://img.shields.io/badge/Notifications-OpenClaw-334155?style=for-the-badge" alt="openclaw-notify" />
+  <img src="https://img.shields.io/badge/Public_Surface-Skills-111827?style=for-the-badge" alt="skills-first" />
+  <img src="https://img.shields.io/badge/Runtime-Swarm_Core-1f2937?style=for-the-badge" alt="runtime" />
+  <img src="https://img.shields.io/badge/State_Truth-SQLite-334155?style=for-the-badge" alt="sqlite" />
 </p>
 
-<p><strong>OpenClaw steers the conversation. Swarm converges the delivery.</strong></p>
+<p><strong>Users enter through skills. Swarm does the delivery underneath.</strong></p>
 
 </div>
 
 ---
 
-## Why 30X?
+## Start Here
 
-`openclaw-swarm-core` is a reusable swarm delivery kernel for OpenClaw-native conversational software delivery.
+`openclaw-swarm-core` is a skills-first package that exposes the Swarm system to OpenClaw through three stable slash entrypoints:
 
-`30X` means leverage, not layoffs.
-- target: every employee gets the effective execution bandwidth of a 30-person org unit
-- method: OpenClaw conversation + deterministic delivery gates + standardized coding harness behavior
-- outcome: faster shipping without surrendering quality controls
+| Slash | Purpose | User Contract |
+|---|---|---|
+| `/coding` | direct coding in the current conversation | choose a harness and execute now |
+| `/delivery` | tracked Swarm delivery | create a task and converge toward PR-backed merge-ready output |
+| `/swarm` | task control for existing delivery work | inspect status, redirect, monitor, cleanup, or kill |
 
-It gives every repo the same hardened runtime:
-- OpenClaw-native conversational delegation
-- deterministic task state machine
-- multi-driver execution (`codex`, `claudecode`, `opencode`, `gemini-cli`)
-- SQLite truth source + JSON compatibility projection
-- OpenClaw-native notifications (`openclaw message send`)
-- thin per-project wrappers via `swarm seed`
-- optional skills layer for `/coding`, `/delivery`, and `/swarm`
+If you only care about how users invoke the system, stop at `skills/`.
+
+If you need to understand how the system works underneath, continue into `swarm-core/`.
+
+If you maintain the product contract or architecture, read `reference/`.
+
+---
+
+## What This Repo Is
+
+This repository is not "a runtime with some optional skills attached."
+
+It is a delivery system packaged in three layers:
+
+1. `skills/` is the public product surface.
+2. `swarm-core/` is the internal delivery runtime.
+3. `reference/` is the maintainer and governance layer.
+
+That split matters:
+
+- users should learn `/coding`, `/delivery`, and `/swarm`
+- they should not need to learn `tmux`, worktrees, or retry state transitions first
+- Swarm should remain a deterministic kernel behind the skill surface, not the first thing a user has to read
 
 North star:
 
@@ -40,20 +56,7 @@ North star:
 
 ---
 
-## Conversational Delivery Chain
-
-| Stage | Owner | Output |
-|---|---|---|
-| Conversation | Human + OpenClaw | scoped and clarified requirement |
-| Delegation | OpenClaw | task + driver + steering context |
-| Execution | swarm + driver + worktree + tmux | commits + branch + PR attempt |
-| Deterministic Monitor | `swarm monitor tick` | state updates + retries + gates |
-| Gate | DoD checks | `ready_to_merge` or failure path |
-| Notification | OpenClaw message layer | channel update and status reply |
-
----
-
-## 90-Second Install
+## Install
 
 ```bash
 git clone https://github.com/30XCOMPANY/openclaw-swarm-core.git
@@ -62,9 +65,10 @@ cd openclaw-swarm-core
 ```
 
 Installer behavior:
+
 - deploy runtime into `~/.openclaw/swarm-core`
-- backup previous install as `.bak.<timestamp>`
-- optionally link `~/.local/bin/swarm` to runtime binary
+- back up previous install as `.bak.<timestamp>`
+- optionally link `~/.local/bin/swarm` to the runtime binary
 
 Verify:
 
@@ -76,7 +80,7 @@ swarm --help
 
 ---
 
-## Ask An OpenClaw Agent To Install The Skills
+## Install The Skills Into OpenClaw
 
 Send this block directly to an OpenClaw agent:
 
@@ -103,43 +107,70 @@ Execution steps:
 ```
 
 What this prompt is for:
+
 - it gives another OpenClaw agent a single copy-paste install task
 - it keeps the public entrypoints fixed as `/coding`, `/delivery`, and `/swarm`
 - it standardizes slash-command enablement instead of relying on implicit defaults
 
 ---
 
-## Skill Modes
+## How Users Should Think About The System
 
-Use the three skills as distinct product surfaces, not loose synonyms:
+Use the skills as distinct product surfaces, not loose synonyms:
 
-| Slash | Purpose | Key Rule |
+| When the user means... | Use | Why |
 |---|---|---|
-| `/coding` | direct coding in the current conversation | ask for harness first if not already chosen |
-| `/delivery` | tracked Swarm delivery toward PR-backed merge-ready output | do not force harness selection first |
-| `/swarm` | inspect or control an existing Swarm task | read status first; retry progression happens via monitor |
+| "Fix this now in the current thread." | `/coding` | direct execution beats orchestration |
+| "Take this to PR / merge-ready." | `/delivery` | task tracking, gates, retries, and cleanup matter |
+| "What is that task doing?" | `/swarm` | an existing Swarm task needs control, not re-spawn |
+
+The clean mental model is:
+
+- `/coding` = execution mode
+- `/delivery` = delivery mode
+- `/swarm` = control mode
 
 ---
 
-## Bootstrap Any Repository
+## What Swarm Does Under The Skills
+
+When a user enters `/delivery`, the skill hands work to the Swarm runtime.
+
+Swarm then provides:
+
+- deterministic task state machine
+- worktree + branch + tmux isolation
+- multi-driver execution (`codex`, `claudecode`, `opencode`, `gemini-cli`)
+- SQLite truth source plus JSON compatibility projection
+- PR / CI / review monitoring
+- evidence-driven retries through `swarm monitor tick`
+- cleanup through `swarm cleanup tick`
+- OpenClaw-native notifications via `openclaw message send`
+
+This is why the repo is skills-first, not skills-only.
+
+The skills are the front door. `swarm-core/` is the machinery behind that door.
+
+---
+
+## Bootstrap A Repository
 
 ```bash
 swarm seed --repo /abs/path/to/repo
 ```
 
 Seed generates project `.openclaw/` wrappers:
+
 - `spawn-agent.sh`
 - `redirect-agent.sh`
 - `check-agents.sh`
 - `status.sh`
 - `cleanup.sh`
 
----
-
-## Command Deck
+Typical operator flow:
 
 ```bash
-# 1) Spawn
+# 1) Spawn tracked delivery work
 ./.openclaw/spawn-agent.sh \
   --id "task-$(date +%s)" \
   --agent codex \
@@ -149,75 +180,48 @@ Seed generates project `.openclaw/` wrappers:
 # 2) Mid-flight correction
 ./.openclaw/redirect-agent.sh <task-id> "focus API first then UI"
 
-# 3) Deterministic monitor loop
+# 3) Monitor and retry progression
 ./.openclaw/check-agents.sh
 
-# 4) Inspect and cleanup
+# 4) Inspect and clean up
 ./.openclaw/status.sh --json
 ./.openclaw/cleanup.sh
 ```
 
 ---
 
-## 30X System Map
+## Repo Layout
 
-```mermaid
-flowchart TB
-    HUMAN["Remote Human"]
-    CH["Discord / Telegram / Direct"]
-    OC["OpenClaw Native Session Layer"]
-    SES["Sessions + History + Steering"]
-    DEL["Delegation Boundary"]
-    SW["swarm Delivery Kernel"]
-    DR["Driver Layer"]
-    HAR["Codex / Claude / OpenCode / Gemini"]
-    ACP["ACP Bridge Surface"]
-    GH["GitHub PR / CI / Reviews"]
-    DB["SQLite Task Truth"]
-    NT["OpenClaw Notify"]
+| Path | Role |
+|---|---|
+| `skills/` | public user-facing skill surface |
+| `swarm-core/` | internal runtime and deterministic delivery kernel |
+| `reference/` | maintainer docs, architecture, constitution, and north star |
+| `install.sh` | runtime installer |
+| `CHANGELOG.md` | runtime behavior and verification log |
 
-    HUMAN --> CH
-    CH --> OC
-    OC --> SES
-    SES --> DEL
-    DEL --> SW
-    SW --> DR
-    DR --> HAR
-    HAR --> GH
-    OC -. optional bridge .-> ACP
-    GH --> SW
-    SW --> DB
-    DB --> OC
-    SW --> NT
-    NT --> HUMAN
+Reading order:
 
-    TICK["cron every 10 minutes<br/>swarm monitor tick"] --> SW
-```
-
-Current reality:
-
-- current Swarm drivers are direct CLI adapters
-- ACP is an OpenClaw bridge surface, not a current Swarm driver path
-- future ACP-backed drivers can be added later without changing the delivery kernel
+1. `skills/openclaw-direct-coding/`
+2. `skills/openclaw-advanced-delivery/`
+3. `skills/swarm-task-control/`
+4. `swarm-core/`
+5. `reference/`
 
 ---
 
-## Driver Matrix
+## Runtime Notes
+
+### Driver Matrix
 
 | Driver | Primary Use | Default Model | Notes |
 |---|---|---|---|
-| `codex` | backend, complex reasoning | inherit Codex default | default driver |
-| `claudecode` | frontend, rapid iteration | inherit Claude Code default | `claude` alias supported |
-| `opencode` | OpenCode flows | inherit OpenCode default | set `model` only when you want explicit override |
+| `codex` | backend, debugging, complex reasoning | inherit Codex default | default driver |
+| `claudecode` | frontend and rapid iteration | inherit Claude Code default | `claude` alias supported |
+| `opencode` | OpenCode-native flows | inherit OpenCode default | set `model` only when explicit override matters |
 | `gemini-cli` | Gemini CLI execution | inherit Gemini CLI default | auth required |
 
-ACP note:
-
-- ACP is not listed here because it is not a current `swarm-core` driver
-- ACP belongs to the OpenClaw bridge layer today
-- an ACP-backed driver is a future integration path, not current runtime behavior
-
-`gemini-cli` can be toggled per project:
+`gemini-cli` can be enabled per project:
 
 ```toml
 [drivers.gemini-cli]
@@ -226,24 +230,19 @@ reasoning = "high"
 enabled = true
 ```
 
----
-
-## Notification Path
+### Notification Path
 
 Notifications are sent by OpenClaw itself, not raw webhook scripts.
 
 - sender: `openclaw message send`
-- config location: project `.openclaw/project.toml` -> `[notifications]`
-- defaults: disabled + empty target (must be explicitly configured)
+- config path: project `.openclaw/project.toml` -> `[notifications]`
+- defaults: disabled with empty target
 - routing priority: task source session target -> project static target
 - recommended events: `ready_to_merge`, `merged`
-- optional noisy events (`abandoned`, `failed`, `ci_failed`, `review_changes_requested`) require `allow_failure_events = true`
-- progress output layer: active tasks emit `System: [swarm-progress] ...` every 5 minutes by default
-- per-task override: pass `--progress-every <minutes>` at spawn, or `--no-progress` to disable
+- noisy failure events require `allow_failure_events = true`
+- progress output emits `System: [swarm-progress] ...` every 5 minutes by default
 
----
-
-## Upgrade Protocol
+### Upgrade
 
 ```bash
 cd openclaw-swarm-core
@@ -253,21 +252,12 @@ git pull
 
 ---
 
-## Repo Structure
+## Maintainer Reading
 
-- `swarm-core/` runtime core
-- `reference/` system definition, architecture, and constitution
-- `skills/` agent-facing operation skills
-- `.archive/` superseded operational docs and history
-- `install.sh` one-command agent installer
-
----
-
-## Reading Order
+Use `reference/` when you need the deeper contract:
 
 1. `reference/agent-swarm-north-star-v1.md`
 2. `reference/agent-swarm-architecture.md`
 3. `reference/agent-swarm-constitution-v1.md`
-4. `skills/openclaw-direct-coding/` -> `/coding`
-5. `skills/openclaw-advanced-delivery/` -> `/delivery`
-6. `skills/swarm-task-control/` -> `/swarm`
+
+Those docs are for maintainers and system design, not for first-contact user onboarding.

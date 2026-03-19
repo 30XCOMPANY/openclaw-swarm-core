@@ -1,11 +1,11 @@
-# 30X Swarm - OpenClaw-Native Delivery Pack
+# 30X Swarm - Skills-First Swarm Delivery System
 
-Reusable 30X Swarm delivery kernel package for OpenClaw-native conversational delivery.
+Reusable OpenClaw package where skills are the public product surface and `swarm-core/` is the internal delivery runtime.
 
 <directory>
-swarm-core/ - Runtime core (CLI/state machine/drivers/templates)
-reference/ - System definition, architecture, and constitution docs
-skills/ - Agent-facing operation layer with fixed public entrypoints (`/coding`, `/delivery`, `/swarm`)
+skills/ - Public entry layer with fixed slash surfaces (`/coding`, `/delivery`, `/swarm`)
+swarm-core/ - Internal runtime core (CLI/state machine/drivers/templates)
+reference/ - Maintainer docs for system definition, architecture, and constitution
 .archive/ - Historical material and superseded operational docs
 </directory>
 
@@ -17,7 +17,9 @@ AGENTS.md - Repository map and maintenance protocol
 </config>
 
 Rules
+- Keep `skills/` as the only public product surface.
 - Keep `swarm-core/` executable and self-contained.
+- Keep `reference/` maintainer-facing; do not let it outrank the user entry path.
 - Keep docs aligned with runtime behavior before each release.
 - Preserve `default_driver = "codex"` unless explicitly changed by owner.
 
