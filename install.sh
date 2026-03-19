@@ -12,6 +12,8 @@ TARGET_DIR="$HOME/.openclaw/skills"
 ASSUME_YES=0
 LINK_BIN=0
 
+SKILLS=(coding delivery)
+
 # -- Usage -------------------------------------------------------------------
 
 usage() {
@@ -56,7 +58,7 @@ done
 
 # -- Validate source ---------------------------------------------------------
 
-for skill in coding delivery; do
+for skill in "${SKILLS[@]}"; do
   if [[ ! -d "$SRC_SKILLS/$skill" ]]; then
     echo "ERROR: missing source dir: $SRC_SKILLS/$skill" >&2
     exit 1
@@ -69,6 +71,7 @@ TARGET_DIR="$(eval echo "$TARGET_DIR")"
 
 if [[ $ASSUME_YES -ne 1 ]]; then
   echo "Install skills to: $TARGET_DIR"
+  echo "  Skills: ${SKILLS[*]}"
   read -r -p "Continue? [y/N] " answer
   if [[ ! "$answer" =~ ^[Yy]$ ]]; then
     echo "Cancelled."
@@ -76,19 +79,19 @@ if [[ $ASSUME_YES -ne 1 ]]; then
   fi
 fi
 
-# -- Backup existing install -------------------------------------------------
-
-if [[ -e "$TARGET_DIR" ]]; then
-  BACKUP_PATH="${TARGET_DIR}.bak.$(date +%Y%m%d%H%M%S)"
-  mv "$TARGET_DIR" "$BACKUP_PATH"
-  echo "Backup created: $BACKUP_PATH"
-fi
-
-# -- Copy skills -------------------------------------------------------------
+# -- Install per-skill (backup only what we own) -----------------------------
 
 mkdir -p "$TARGET_DIR"
-cp -R "$SRC_SKILLS/coding"  "$TARGET_DIR/coding"
-cp -R "$SRC_SKILLS/delivery" "$TARGET_DIR/delivery"
+
+for skill in "${SKILLS[@]}"; do
+  target="$TARGET_DIR/$skill"
+  if [[ -e "$target" ]]; then
+    backup="${target}.bak.$(date +%Y%m%d%H%M%S)"
+    mv "$target" "$backup"
+    echo "Backup: $backup"
+  fi
+  cp -R "$SRC_SKILLS/$skill" "$target"
+done
 
 # -- Set permissions ---------------------------------------------------------
 
@@ -107,6 +110,6 @@ fi
 
 cat <<DONE
 Install complete.
-- skills: $TARGET_DIR/coding, $TARGET_DIR/delivery
+- skills: $(printf "$TARGET_DIR/%s " "${SKILLS[@]}")
 - command: delivery --help
 DONE
