@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-# [INPUT]: swarm CLI arguments and local Python runtime.
-# [OUTPUT]: Delegates command execution to swarm_cli.py.
-# [POS]: Global executable entrypoint for /Users/oogie/.openclaw/swarm-core.
-# [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
-
-set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec python3 "$SCRIPT_DIR/swarm_cli.py" "$@"
