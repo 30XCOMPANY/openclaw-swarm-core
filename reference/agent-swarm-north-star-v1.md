@@ -1,68 +1,64 @@
 <!--
-[INPUT]: 依赖 OpenClaw 当前原生能力验证结果，依赖 swarm-core 现有状态机与交付边界
-[OUTPUT]: 对外提供 30X Swarm 北极星定义、能力承诺与指标体系
-[POS]: reference 的产品定义文档，被 constitution 和 usage 共同引用
+[INPUT]: OpenClaw native capability verification, delivery CLI implementation in skills/delivery/bin/
+[OUTPUT]: 30X Swarm north star definition, capability commitments, and metrics
+[POS]: reference product definition doc, referenced by constitution and architecture
 [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 -->
 
 # 30X Swarm North Star v1
 
-Status: Active  
+Status: Active
 Scope: OpenClaw-native conversational delivery system
 
 ## 1. System Definition
 
-30X Swarm 不是孤立的脚本集合，也不是单次代码生成器。
+30X Swarm is not an isolated script collection, nor a one-shot code generator.
 
-系统定义固定为：
+System definition:
 
 **OpenClaw-native conversational control plane + swarm deterministic delivery kernel**
 
-在本仓库中的公开产品面固定为：
+The public product surface in this repository:
 
-- `/coding`
-- `/delivery`
-- `/swarm`
+- `/coding` — direct coding through ACP harnesses
+- `/delivery` — tracked delivery with PR gates, retries, cleanup
 
-也就是说，用户通过 skills 进入系统；Swarm 作为确定性内核在这些 skills 背后工作。
+Users enter through skills; Swarm works as the deterministic kernel behind those skills. The delivery runtime lives inside the skill at `skills/delivery/bin/`.
 
-一句话北极星：
+One-line north star:
 
-**让用户只需远程与 OpenClaw 对话，OpenClaw 基于原生会话与工具能力驱动 swarm，把多轮意图稳定收敛为可审查、可追踪、可合并的生产级 PR。**
+**Let the user simply converse remotely with OpenClaw, while OpenClaw drives Swarm using native session and tool capabilities to stably converge multi-turn intent into auditable, trackable, mergeable production-grade PRs.**
 
 ## 2. Native Ability Anchor
 
-北极星只能建立在今天已经验证存在的 OpenClaw 原生能力之上：
+The north star is built on verified, existing OpenClaw native capabilities:
 
-- 多渠道远程对话入口
-- 持续会话与会话历史
-- 原生 agent 执行能力（`read/edit/write/exec/process`）
-- 子会话与任务派生（`sessions_spawn`、`subagents`）
-- ACP / coding harness 桥接能力
-- 运行中 steering、续聊、状态追问
+- Multi-channel remote conversation entry
+- Persistent sessions and session history
+- Native agent execution capabilities (`read/edit/write/exec/process`)
+- Sub-sessions and task spawning (`sessions_spawn`, `subagents`)
+- ACP / coding harness bridging capability
+- In-flight steering, continuation, and status queries
 
 ## 3. Role Split
 
 OpenClaw:
-- 面向用户的唯一入口
-- 负责会话连续性、多轮澄清、运行中打断、补充约束、状态追问
+- The sole user-facing entry point
+- Owns conversational continuity, multi-turn clarification, in-flight interruption, constraint addition, status queries
 
-swarm:
-- 负责确定性交付收敛
-- 负责 worktree、driver、PR、CI、review、retry、cleanup
+swarm (delivery CLI):
+- Owns deterministic delivery convergence
+- Owns worktree, driver, PR, CI, review, retry, cleanup
+- Implemented as shell CLI with zero Python dependency
 
 coding harness:
-- 负责统一执行行为、质量约束、DoD 习惯和 PR 产物格式
+- Owns unified execution behavior, quality constraints, DoD adherence, and PR artifact format
 
 ## 4. North Star Metric
 
 Primary metric:
 
 **Under ongoing conversation and steering through OpenClaw, maximize production-grade merged deliveries per unit of human attention.**
-
-中文口径：
-
-**在通过 OpenClaw 持续对话、打断和续聊的前提下，用最少的人类注意力，最大化生产级合并交付。**
 
 ## 5. Success Metrics
 
@@ -80,11 +76,11 @@ Guardrails:
 
 ## 6. Product Contract
 
-系统对外承诺：
-- 用户首先接触的是 skills，而不是 runtime 目录结构
-- 用户只需要与 OpenClaw 对话，不需要直接操作底层 coding tools
-- 用户可以在执行中继续补充约束、打断或要求继续
-- 默认产物是可追踪任务状态与 PR，不只是文本回复
-- 系统承诺高确定性交付和生产级质量，不承诺绝对零错误
+The system commits to:
+- Users first encounter skills, not runtime directory structure
+- Users only need to converse with OpenClaw, not directly operate underlying coding tools
+- Users can continue adding constraints, interrupt, or request continuation during execution
+- Default artifact is trackable task state and PR, not just text replies
+- The system commits to high-determinism delivery and production-grade quality, not absolute zero errors
 
 [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md

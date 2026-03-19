@@ -1,12 +1,11 @@
-# 30X Swarm - Skills-First Swarm Delivery System
+# 30X Swarm - Skills-First Delivery System
 
-Reusable OpenClaw package where skills are the public product surface and `swarm-core/` is the internal delivery runtime.
+Reusable OpenClaw package where skills are the public product surface and the delivery runtime lives inside the skill.
 
 <directory>
-skills/ - Public entry layer with fixed slash surfaces (`/coding`, `/delivery`, `/swarm`)
-  skills/delivery/ - Shell-based delivery CLI (spawn/monitor/kill/cleanup) with SQLite state
-  skills/coding/ - Coding skill (placeholder)
-swarm-core/ - Internal runtime core (CLI/state machine/drivers/templates)
+skills/coding/ - Pure text ACP operations guide (/coding)
+skills/delivery/ - Self-contained delivery skill with embedded CLI (/delivery)
+skills/delivery/bin/ - Shell-based delivery runtime (zero Python dependency)
 reference/ - Maintainer docs for system definition, architecture, and constitution
 .archive/ - Historical material and superseded operational docs
 </directory>
@@ -14,15 +13,16 @@ reference/ - Maintainer docs for system definition, architecture, and constituti
 <config>
 README.md - Installation and operations guide for other agents
 CHANGELOG.md - Release log for runtime behavior changes and verification notes
-install.sh - One-command installer to deploy runtime into ~/.openclaw/swarm-core
+install.sh - One-command installer to deploy skills into ~/.openclaw/skills and link delivery CLI
 AGENTS.md - Repository map and maintenance protocol
 </config>
 
 Rules
-- Keep `skills/` as the only public product surface.
-- Keep `swarm-core/` executable and self-contained.
-- Keep `reference/` maintainer-facing; do not let it outrank the user entry path.
+- Skills are the only public product surface. Users enter through `/coding` and `/delivery`.
+- The delivery runtime (`skills/delivery/bin/`) is embedded inside the skill, not a separate top-level directory.
+- `reference/` is maintainer-facing; it must not displace the skills entry path.
 - Keep docs aligned with runtime behavior before each release.
-- Preserve `default_driver = "codex"` unless explicitly changed by owner.
+- Preserve `default_driver = codex` unless explicitly changed by owner.
+- No Python dependency. The entire delivery runtime is shell-based (bash + sqlite3 + git + jq + gh + tmux).
 
 [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md

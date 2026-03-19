@@ -1,15 +1,15 @@
 <!--
-[INPUT]: 依赖 OpenClaw 当前原生会话能力，依赖 swarm-core 状态机与驱动实现
-[OUTPUT]: 对外提供 30X Swarm 宪法、角色边界、生命周期和交付约束
-[POS]: reference 的治理核心文档，约束 architecture 和 usage 的口径
+[INPUT]: OpenClaw native session capabilities, delivery CLI state machine and driver implementation
+[OUTPUT]: 30X Swarm constitution, role boundaries, lifecycle, and delivery constraints
+[POS]: reference governance core doc, constrains architecture and usage
 [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 -->
 
 # 30X Swarm Constitution v1
 
-Status: Active v1  
-Scope: OpenClaw-native conversational delivery using swarm deterministic execution  
-Aligned Source: Current OpenClaw runtime + current swarm-core implementation
+Status: Active v1
+Scope: OpenClaw-native conversational delivery using swarm deterministic execution
+Aligned Source: Current OpenClaw runtime + delivery CLI implementation in skills/delivery/bin/
 
 ## 1) System Intent
 
@@ -27,7 +27,7 @@ The system is:
 - `OpenClaw-native conversational control plane`
 - `swarm deterministic delivery kernel`
 - `coding harness execution substrate`
-- `skills-first product surface exposing /coding, /delivery, and /swarm`
+- `skills-first product surface exposing /coding and /delivery`
 
 The system is not:
 - A standalone swarm product detached from OpenClaw sessions
@@ -45,10 +45,11 @@ OpenClaw:
 - Uses native session, agent, spawn, and messaging capabilities as the user-facing control plane.
 - Must preserve the conversational thread as the authority for evolving business intent.
 
-swarm:
+swarm (delivery CLI):
 - Owns deterministic task realization after delegation.
 - Manages worktree isolation, driver launch, PR creation, CI/review monitoring, retries, and cleanup.
 - Must expose task state in a way OpenClaw can query and report without guessing.
+- Implemented as shell CLI in `skills/delivery/bin/` with zero Python dependency.
 
 Coding harnesses (Codex / ClaudeCode / OpenCode / Gemini CLI / ACP-backed runtimes):
 - Own execution inside the delegated coding environment.
@@ -63,7 +64,7 @@ Coding harnesses (Codex / ClaudeCode / OpenCode / Gemini CLI / ACP-backed runtim
 
 1a. Public entry discipline:
 - The repo's public entry surface is the skills layer.
-- `/coding`, `/delivery`, and `/swarm` are the stable user-facing entrypoints.
+- `/coding` and `/delivery` are the stable user-facing entrypoints.
 - Runtime internals and governance docs must not displace that entry path.
 
 2. Context separation:
@@ -81,8 +82,8 @@ Coding harnesses (Codex / ClaudeCode / OpenCode / Gemini CLI / ACP-backed runtim
 - Monitoring relies on external signals (git, tmux, PR, CI, review states), not chat polling loops.
 
 6. Single source of truth:
-- Canonical task state must live in one authority store.
-- Any JSON file is projection/compatibility output, not canonical state.
+- Canonical task state lives in SQLite (`swarm.db`).
+- `delivery status --format json` is the query interface. No static JSON file is maintained.
 
 7. Idempotent operations:
 - Spawn, redirect, retry, monitor, and cleanup must be safe to re-run.
@@ -123,13 +124,10 @@ Rules:
 
 ## 7) Unified Driver Contract (Multi-CLI)
 
-Each execution tool must implement the same contract:
-- `preflight(task, env) -> capabilities`
-- `launch(run_ctx) -> session_ref`
-- `redirect(session_ref, message) -> ack`
-- `probe(session_ref) -> alive|exited`
-- `collect(run_ctx) -> branch/pr/check artifacts`
-- `normalize_error(raw) -> structured failure reason`
+Each execution driver implements the same behavioral contract through the delivery CLI's `drivers.sh` module:
+- Check driver availability on PATH
+- Build driver-specific command with model, reasoning, and prompt arguments
+- Auto-select driver based on prompt content and availability
 
 Constraint:
 - Core orchestration flow cannot branch on tool internals beyond the driver boundary.
@@ -181,13 +179,9 @@ For every steering event:
 4. Avoid conversational polling for machine-checkable signals.
 5. Prefer deterministic state reads over token-expensive status conversations.
 
-## 12) Seed Protocol (Project Onboarding)
+## 12) Project Onboarding
 
-Each new project should be "seeded", not forked:
-- Keep one global orchestration core.
-- Generate per-project minimal config + logs + compatibility projection only.
-- Do not duplicate core swarm scripts per project.
-- Preserve an execution surface that OpenClaw can delegate into uniformly across repos.
+Each new project is initialized with `delivery init --repo <path>`, which creates only the SQLite database at `<repo>/.openclaw/swarm.db`. No executable scripts are copied into the project. The delivery CLI operates target repos directly from its installed location.
 
 ## 13) Success Metrics
 
@@ -221,6 +215,6 @@ A setup is considered conformant only if:
 - Driver contract supports all configured tools.
 - DoD gates are fully automated.
 - Retry and steering policy is evidence-driven.
-- Seed protocol prevents script drift.
+- Skills are the public entry surface; runtime is embedded inside the delivery skill.
 
 [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md

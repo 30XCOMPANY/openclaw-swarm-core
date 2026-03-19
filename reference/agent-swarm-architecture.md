@@ -1,51 +1,51 @@
 <!--
-[INPUT]: 依赖 OpenClaw 原生能力验证结果，依赖 swarm-core 当前实现与使用约定
-[OUTPUT]: 对外提供 30X Swarm x OpenClaw 协同架构说明与链路分层
-[POS]: reference 的架构说明文档，连接 north-star、constitution 与 usage
+[INPUT]: OpenClaw native capability verification, delivery CLI implementation in skills/delivery/bin/
+[OUTPUT]: 30X Swarm x OpenClaw architecture description and layered chain
+[POS]: reference architecture doc, connects north-star, constitution, and usage
 [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 -->
 
 # 30X Swarm Architecture
 
-Status: Current  
+Status: Current
 Scope: OpenClaw-native conversational delivery
 
 ## 1. Core Framing
 
-当前系统不是“OpenClaw 外挂一个 swarm 脚本”，而是一个两层协同系统：
+The system is a two-layer collaboration:
 
-- **OpenClaw 原生会话层**：远程入口、持续对话、会话历史、steering、状态追问、子会话派生
-- **30X Swarm 交付内核**：任务状态机、driver 调度、PR/CI/review gate、重试、清理
+- **OpenClaw native session layer**: remote entry, ongoing conversation, session history, steering, status queries, sub-session spawning
+- **30X Swarm delivery kernel**: task state machine, driver dispatch, PR/CI/review gates, retry, cleanup
 
-它们之间的关系不是替代，而是分工：
+Their relationship is division of labor, not substitution:
 
-- OpenClaw 负责理解和持续承接人类意图
-- swarm 负责让交付过程在机器侧可控、可监控、可恢复
+- OpenClaw owns understanding and continuously receiving human intent
+- Swarm ensures the delivery process is controllable, monitorable, and recoverable on the machine side
 
-在这个仓库里，还要再补上一层产品包装事实：
+In this repository, there is one additional packaging fact:
 
-- `skills/` 是用户看到的 front door
-- `swarm-core/` 是 front door 背后的 runtime
-- `reference/` 是维护者读的系统文档
+- `skills/` is the user-facing front door
+- `skills/delivery/bin/` is the shell runtime embedded inside the delivery skill
+- `reference/` is the maintainer documentation layer
 
-所以实现上是三层目录，产品上只有一层公开表面：`/coding`、`/delivery`、`/swarm`
+The implementation is two skill directories. The product surface is two slash commands: `/coding` and `/delivery`.
 
 ## 2. Why This Split Exists
 
-如果把业务意图、多轮澄清、历史记忆、远程消息和代码执行塞进同一个执行器，会同时出现两种退化：
+If business intent, multi-turn clarification, history memory, remote messaging, and code execution were all crammed into one executor, two forms of degradation would occur simultaneously:
 
-- 对话系统缺少确定性交付约束，容易停在“回答得像完成了”
-- 代码执行器缺少会话连续性，容易把每次补充要求当成新任务
+- The conversation system lacks deterministic delivery constraints, easily stopping at "answered as if complete"
+- The code executor lacks conversational continuity, easily treating each follow-up as a new task
 
-分层之后：
+After layering:
 
-- OpenClaw 保存对话连续性与业务语义
-- swarm 保存交付确定性与机器可验证状态
-- coding harness 只负责高质量执行，不背负业务控制面
+- OpenClaw preserves conversational continuity and business semantics
+- Swarm preserves delivery determinism and machine-verifiable state
+- Coding harnesses are responsible only for high-quality execution, not the business control plane
 
 ## 3. Native OpenClaw Abilities The Architecture Depends On
 
-当前架构明确建立在这些已验证的 OpenClaw 原生能力上：
+The architecture is explicitly built on these verified native OpenClaw capabilities:
 
 - `agent` / `agents`
 - `sessions` / `sessions_history` / `sessions_send` / `sessions_yield`
@@ -56,101 +56,88 @@ Scope: OpenClaw-native conversational delivery
 - `acp`
 - agent runtime tools: `read/edit/write/exec/process`
 
-因此系统并不需要伪造一个“未来有会话能力”的 OpenClaw；地基今天就存在。
+The foundation exists today; no future capabilities are assumed.
 
 ## 4. Runtime Topology
 
-```mermaid
-flowchart LR
-    HUMAN["Remote Human"]
-    CH["Discord / Telegram / Direct"]
-    OC["OpenClaw Native Session Layer"]
-    SS["Session / History / Steering"]
-    DEL["Delegation Boundary"]
-    SW["30X Swarm Delivery Kernel"]
-    DR["Driver Layer"]
-    HAR["Coding Harness"]
-    GH["GitHub PR / CI / Review"]
-    ST["SQLite Task State"]
-
-    HUMAN --> CH
-    CH --> OC
-    OC --> SS
-    SS --> DEL
-    DEL --> SW
-    SW --> DR
-    DR --> HAR
-    HAR --> GH
-    SW --> ST
-    GH --> SW
-    ST --> OC
+```
+HUMAN -> Channel (Discord / Telegram / Direct)
+      -> OpenClaw Native Session Layer
+      -> Session / History / Steering
+      -> Delegation Boundary
+      -> 30X Swarm Delivery Kernel (skills/delivery/bin/)
+      -> Driver Layer (codex / claudecode / opencode / gemini-cli)
+      -> Coding Harness Execution
+      -> GitHub PR / CI / Review
+      -> SQLite Task State (single source of truth)
+      -> Back to OpenClaw for status reporting
 ```
 
 ## 5. Conversational Delivery Chain
 
-标准链路不是 `spawn -> PR`，而是：
+The standard chain is not `spawn -> PR`, but:
 
 `conversation -> clarify -> delegate -> execute -> monitor -> steer/retry -> ready_to_merge -> merge`
 
-这里的关键点有三个：
+Three key points:
 
 1. **Conversation is primary**
-- 用户看到的是 OpenClaw 会话，不是 `tmux`
+- The user sees an OpenClaw conversation, not `tmux`
 
 2. **Delegation is explicit**
-- OpenClaw 将意图委托给 swarm，而不是把 swarm 暴露成用户产品面
+- OpenClaw delegates intent to Swarm, rather than exposing Swarm as the user product surface
 
 3. **Delivery is artifact-backed**
-- 交付完成的标志是 PR/gates/state，不是 agent 说“我做完了”
+- Delivery completion is marked by PR/gates/state, not by the agent saying "I'm done"
 
-对仓库组织的直接要求：
+Direct requirements for repo organization:
 
-- README 必须先讲 skills，再讲 runtime
-- `skills/` 必须先于 `swarm-core/` 被用户看到
-- `reference/` 不得替代 skills 成为上手入口
+- README leads with skills, then runtime
+- `skills/` is the first thing users see
+- `reference/` does not replace skills as the onboarding entry
 
 ## 6. Responsibility Split
 
 ### OpenClaw
-- 接收远程需求
-- 保持会话上下文
-- 支持多轮补充、打断、继续推进
-- 回答任务状态
-- 选择何时委托给 swarm
+- Receive remote requirements
+- Maintain conversational context
+- Support multi-turn supplements, interruptions, continuation
+- Answer task status queries
+- Decide when to delegate to Swarm
 
-### swarm
-- 创建隔离执行上下文
-- 选择和驱动 coding harness
-- 建立 PR 产物链路
-- 通过外部信号做监控与重试
-- 向 OpenClaw 提供可查询交付状态
+### Swarm (delivery CLI)
+- Create isolated execution contexts (worktree + branch + tmux session)
+- Select and drive coding harnesses
+- Establish PR artifact chain
+- Monitor and retry via external signals
+- Provide queryable delivery state to OpenClaw
 
 ### Coding Harness
-- 遵守 prompt 和 DoD
-- 在隔离工作区执行实现
-- 生成提交、分支、PR 与必要工件
+- Follow prompt and DoD
+- Execute implementation in isolated workspace
+- Generate commits, branches, PRs, and required artifacts
 
 ## 7. Why Swarm Still Matters
 
-即使 OpenClaw 已有原生 coding tool delegation，swarm 依然有独立价值：
+Even with OpenClaw's native coding tool delegation, Swarm has independent value:
 
-- 它把执行行为做成了稳定协议
-- 它把 PR/CI/review/screenshot gate 做成了确定性状态机
-- 它把失败重试做成了 evidence-driven loop
-- 它把不同 coding harness 收口成统一交付接口
+- It makes execution behavior a stable protocol
+- It makes PR/CI/review/screenshot gates a deterministic state machine
+- It makes failure retry an evidence-driven loop
+- It unifies different coding harnesses behind a single delivery interface
 
-所以 swarm 的护城河不是“能调某个 CLI”，而是：
+Swarm's moat is not "can invoke a CLI", but:
 
-**能把持续对话中的业务意图稳定收敛成生产级 PR。**
+**Stably converging business intent from ongoing conversation into production-grade PRs.**
 
 ## 8. Architectural Consequences
 
-这套架构意味着：
+This architecture means:
 
-- 不应把更多 CLI 支持误当作北极星
-- 不应把 OpenClaw 降级成单纯消息入口
-- 不应让每次补充要求都新开一个独立任务
-- 应优先建设 OpenClaw session 与 swarm task 的稳定映射
-- 应优先建设 interruption / continue / status query 的正式路径
+- Do not mistake more CLI support for the north star
+- Do not downgrade OpenClaw to a mere message gateway
+- Do not treat each follow-up as a brand new independent task
+- Prioritize building stable mapping between OpenClaw sessions and Swarm tasks
+- Prioritize building formal paths for interruption / continue / status query
 
 [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md

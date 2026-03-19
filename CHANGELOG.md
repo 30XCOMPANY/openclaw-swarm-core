@@ -2,6 +2,24 @@
 
 All notable changes to `30X Swarm` are documented in this file.
 
+## 2026-03-19
+
+### Changed (Breaking)
+- Complete skills-first restructure
+- `swarm-core/` removed; delivery runtime now lives in `skills/delivery/bin/`
+- Three skills merged into two: `/coding` and `/delivery`
+- `/swarm` merged into `/delivery`
+- Python runtime replaced with shell (zero Python dependency)
+- `project.toml` replaced with `delivery.conf` (key=value format)
+- `swarm seed` removed; `delivery init` only creates SQLite DB
+- Per-project seeded scripts removed; agent calls `delivery` CLI directly
+- `active-tasks.json` removed; use `delivery status --format json`
+
+### Added
+- `delivery` CLI with subcommands: spawn, status, redirect, monitor, kill, cleanup, init
+- Complete ACP operations guide in `/coding` skill
+- `delivery cleanup --legacy` to remove old seeded scripts
+
 ## 2026-02-27
 
 ### Added
